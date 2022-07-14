@@ -1,0 +1,41 @@
+description: Default Protonets implementation from orbit repo
+
+target:
+        service: sing
+        name: msrresrchvc
+        vc: gcr-singularity-resrch
+
+environment:
+        #image: pytorch/pytorch:1.4-cuda10.1-cudnn7-devel
+        #registry: docker.io # any public registry can be specified here
+        #image: czn_pytorch/1.7.1mae_mount:latest
+        image: base/job/pytorch/1.8.0-cuda11.1-a100:20220509T151538446
+        #registry: msrcvgvv.azurecr.io
+        registry: singularitybase.azurecr.io
+        #username: msrcvgvv
+        setup: 
+          - pip install -r requirements.txt
+
+code: 
+    local_dir: $CONFIG_DIR/src
+
+storage:
+    data:
+       storage_account_name: dguill
+       container_name: data
+       mount_dir: /mnt/data
+       #remote_dir: ORB_DATA
+       #storage_id: dguill
+       #local_dir: ../ORB_DATA
+
+jobs:
+    - name: protonets_1
+      #sku: 32G2
+      sku: G8
+      command:
+         - python3 single-step-learner.py --data_path /mnt/data/ORB_DATA/orbit_benchmark_84 --frame_size 84
+           --feature_extractor resnet18 --pretrained_extractor_path features/pretrained/resnet18_imagenet_84.pth
+           --classifier proto --learn_extractor
+           --context_video_type clean --target_video_type clutter 
+           --train_object_cap 10 --with_train_shot_caps 
+           --use_two_gpus 
