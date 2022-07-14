@@ -1,9 +1,9 @@
 description: Default Protonets implementation from orbit repo
 
 target:
-        service: sing
-        name: msrresrchvc
-        vc: gcr-singularity-resrch
+        service: amlk8s
+        name: itplabrr1cl1 
+        vc: resrchvc
 
 environment:
         #image: pytorch/pytorch:1.4-cuda10.1-cudnn7-devel
