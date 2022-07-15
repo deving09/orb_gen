@@ -30,7 +30,7 @@ storage:
 
 jobs:
     - name: protonets_1
-      sku: G1
+      sku: G1@eastus2
       #sku: G8
       command:
          - python3 single-step-learner.py --data_path /mnt/data/ORB_DATA/orbit_benchmark_84 --frame_size 84
