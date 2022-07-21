@@ -22,7 +22,7 @@ FROM pytorch/pytorch:1.8.0-cuda11.1-cudnn8-devel
 
 
 
-#WORKDIR /app
+WORKDIR /app
 
 # Install system libraries required by environment
 RUN pip install torchvision==0.9.1 \
