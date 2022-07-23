@@ -209,7 +209,19 @@ class Learner:
         context_clips, context_paths, context_labels, target_clips, target_paths, target_labels, object_list = unpack_task(task_dict, self.device, target_to_device=True, preload_clips=self.args.preload_clips)
 
         text_inputs = torch.cat([clip.tokenize(f"a photo of a {c}") for c in object_list]).to(self.device)
-        text_features = self.model.encode_text(text)
+        #text_features = self.model.encode_text(text)
+
+        context_clip_loader = get_clip_loader((context_clips, context_clip_labels), self.batch_size, with_labels=True)
+
+        for batch_context_clips, batch_context_labels in context_clip_loader:
+            batch_context_clips = batch_context_clips.to(self.device)
+            batch_context_labels = batch_context_labels.to(self.device)
+            
+            features = self.model.encode_image(batch_context_clips)
+            print(features)
+            1/0
+
+
 
 
 
