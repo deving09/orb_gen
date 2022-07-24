@@ -295,7 +295,7 @@ class Learner:
     
     def validate(self):
         
-        self.model.set_test_mode(True) 
+        #self.model.set_test_mode(True) 
         with torch.no_grad():
             # loop through validation tasks (num_validation_users * num_test_tasks_per_user)
             num_val_tasks = self.validation_queue.num_users * self.args.test_tasks_per_user
@@ -354,9 +354,9 @@ class Learner:
 
     def test(self, path):
 
-        self.init_model()
-        self.model.load_state_dict(torch.load(path, map_location=self.map_location)) 
-        self.model.set_test_mode(True)
+        #self.init_model()
+        #self.model.load_state_dict(torch.load(path, map_location=self.map_location)) 
+        #self.model.set_test_mode(True)
         self.ops_counter.set_base_params(self.model)
 
         with torch.no_grad():
