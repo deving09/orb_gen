@@ -188,13 +188,13 @@ class Learner:
                 #self.save_checkpoint(epoch + 1)
 
                 # validate
-                if (epoch + 1) >= self.args.validation_on_epoch:
-                    self.validate()
+                #if (epoch + 1) >= self.args.validation_on_epoch:
+                self.validate()
             
             # save the final model
-            torch.save(self.model.state_dict(), self.checkpoint_path_final)
+            #torch.save(self.model.state_dict(), self.checkpoint_path_final)
          
-        1/0
+        #1/0
         if self.args.mode == 'train_test':
             self.test(self.checkpoint_path_final)
             self.test(self.checkpoint_path_validation)
@@ -306,12 +306,28 @@ class Learner:
                 if step % self.args.test_tasks_per_user == 0:
                     cached_target_frames_by_video, cached_target_paths_by_video, cached_target_labels_by_video = target_frames_by_video, target_paths_by_video, target_labels_by_video
 
-                self.model.personalise(context_clips, context_labels)
+                #self.model.personalise(context_clips, context_labels)
 
+                text_inputs = torch.cat([clip.tokenize(f"a photo of a {c}") for c in object_list]).to(self.device)
                 # loop through cached target videos for the current task
                 for video_frames, video_paths, video_label in zip(cached_target_frames_by_video, cached_target_paths_by_video, cached_target_labels_by_video):
                     video_clips = attach_frame_history(video_frames, self.args.clip_length)
-                    video_logits = self.model.predict(video_clips)
+                    ### START
+                    sz = video_clips.size()
+                    video_clips = video_clips.view(-1, sz[-3], sz[-2], sz[-1])
+                    features = self.model.encode_image(video_clips)
+                    feat_dim = features.size(-1)
+                    features = features.view(-1, sz[-4], feat_dim)
+                    features = torch.mean(features, dim=1)
+                    text_features = self.model.encode_text(text_inputs)
+
+                    features /= features.norm(dim=-1, keepdim=True)
+                    text_features /= text_features.norm(dim=-1, keepdim=True)
+
+                    video_logits = (100.0 * features @ text_features.T).softmax(dim=-1)
+                    #target_logits.extend(batch_target_logits.detach())
+                    ### END
+                    #video_logits = self.model.predict(video_clips)
                     self.validation_evaluator.append_video(video_logits, video_label, video_paths, object_list)
 
                 # reset task's params
