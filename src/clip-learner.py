@@ -332,7 +332,7 @@ class Learner:
                     self.validation_evaluator.append_video(video_logits, video_label, video_paths, object_list)
 
                 # reset task's params
-                self.model._reset()
+                # self.model._reset()
 
                 # if this is the user's last task, get the average performance for the user
                 if (step+1) % self.args.test_tasks_per_user == 0:
