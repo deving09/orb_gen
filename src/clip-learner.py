@@ -185,7 +185,7 @@ class Learner:
                 print_and_log(self.logfile, f'epoch [{epoch+1}/{self.args.epochs}] train loss: {mean_epoch_loss:.7f} {stats_to_str(mean_stats)} time/epoch: {int(seconds/60):d}m{int(seconds%60):02d}s')
                 print_and_log(self.logfile, '-'*150)
                 self.train_evaluator.reset()
-                self.save_checkpoint(epoch + 1)
+                #self.save_checkpoint(epoch + 1)
 
                 # validate
                 if (epoch + 1) >= self.args.validation_on_epoch:
