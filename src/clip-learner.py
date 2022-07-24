@@ -370,14 +370,30 @@ class Learner:
                     cached_target_frames_by_video, cached_target_paths_by_video, cached_target_labels_by_video = target_frames_by_video, target_paths_by_video, target_labels_by_video
 
                 # dummy warm-up to get correct timing
-                self.model.personalise(context_clips, context_labels, ops_counter=False)
-                torch.cuda.synchronize()
-                self.model.personalise(context_clips, context_labels, ops_counter=self.ops_counter)
+                #self.model.personalise(context_clips, context_labels, ops_counter=False)
+                #torch.cuda.synchronize()
+                #self.model.personalise(context_clips, context_labels, ops_counter=self.ops_counter)
+                
+                text_inputs = torch.cat([clip.tokenize(f"a photo of a {c}") for c in object_list]).to(self.device)
 
                 # loop through cached target videos for the current task
                 for video_frames, video_paths, video_label in zip(cached_target_frames_by_video, cached_target_paths_by_video, cached_target_labels_by_video):
                     video_clips = attach_frame_history(video_frames, self.args.clip_length)
-                    video_logits = self.model.predict(video_clips)
+                    # Start
+                    sz = video_clips.size()
+                    video_clips = video_clips.view(-1, sz[-3], sz[-2], sz[-1])
+                    features = self.model.encode_image(video_clips)
+                    feat_dim = features.size(-1)
+                    features = features.view(-1, sz[-4], feat_dim)
+                    features = torch.mean(features, dim=1)
+                    text_features = self.model.encode_text(text_inputs)
+
+                    features /= features.norm(dim=-1, keepdim=True)
+                    text_features /= text_features.norm(dim=-1, keepdim=True)
+
+                    video_logits = (100.0 * features @ text_features.T).softmax(dim=-1)
+                    # End
+                    #video_logits = self.model.predict(video_clips)
                     self.test_evaluator.append_video(video_logits, video_label, video_paths, object_list)
 
                 # reset task's params
