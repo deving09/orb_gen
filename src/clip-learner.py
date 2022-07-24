@@ -120,8 +120,8 @@ class Learner:
         """
         CLIP Coding Set up
         """
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        model_clip, preprocess = clip.load('ViT-B/32', device)
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        model_clip, preprocess = clip.load('ViT-B/32', self.device)
         self.model = model_clip
         self.prepreocess = preprocess
         
@@ -312,6 +312,7 @@ class Learner:
                 # loop through cached target videos for the current task
                 for video_frames, video_paths, video_label in zip(cached_target_frames_by_video, cached_target_paths_by_video, cached_target_labels_by_video):
                     video_clips = attach_frame_history(video_frames, self.args.clip_length)
+                    video_clips = video_clips.to(self.device)
                     ### START
                     sz = video_clips.size()
                     video_clips = video_clips.view(-1, sz[-3], sz[-2], sz[-1])
@@ -379,6 +380,8 @@ class Learner:
                 # loop through cached target videos for the current task
                 for video_frames, video_paths, video_label in zip(cached_target_frames_by_video, cached_target_paths_by_video, cached_target_labels_by_video):
                     video_clips = attach_frame_history(video_frames, self.args.clip_length)
+                    video_clips = video_clips.to(self.device)
+                    
                     # Start
                     sz = video_clips.size()
                     video_clips = video_clips.view(-1, sz[-3], sz[-2], sz[-1])
