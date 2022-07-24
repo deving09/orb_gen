@@ -148,7 +148,7 @@ class Learner:
         if self.args.mode == 'train' or self.args.mode == 'train_test':
             
             extractor_scale_factor=0.1 if self.args.pretrained_extractor_path else 1.0
-            self.optimizer = init_optimizer(self.model, self.args.learning_rate, extractor_scale_factor=extractor_scale_factor)
+            #self.optimizer = init_optimizer(self.model, self.args.learning_rate, extractor_scale_factor=extractor_scale_factor)
 
 
 
@@ -156,7 +156,7 @@ class Learner:
                 losses = []
                 since = time.time()
                 torch.set_grad_enabled(True)
-                self.model.set_test_mode(False)
+                #self.model.set_test_mode(False)
                 
                 train_tasks = self.train_queue.get_tasks()
                 total_steps = len(train_tasks)
@@ -173,9 +173,9 @@ class Learner:
                         current_stats_str = stats_to_str(self.train_evaluator.get_current_stats())
                         print_and_log(self.logfile, f'epoch [{epoch+1}/{self.args.epochs}][{step+1}/{total_steps}], train loss: {task_loss.item():.7f}, {current_stats_str.strip()}, time/task: {int(task_time/60):d}m{int(task_time%60):02d}s')
 
-                    if ((step + 1) % self.args.tasks_per_batch == 0) or (step == (total_steps - 1)):
-                        self.optimizer.step()
-                        self.optimizer.zero_grad()
+                    #if ((step + 1) % self.args.tasks_per_batch == 0) or (step == (total_steps - 1)):
+                    #    self.optimizer.step()
+                    #    self.optimizer.zero_grad()
                 
                 mean_stats = self.train_evaluator.get_mean_stats()
                 mean_epoch_loss = torch.Tensor(losses).mean().item()
@@ -193,7 +193,8 @@ class Learner:
             
             # save the final model
             torch.save(self.model.state_dict(), self.checkpoint_path_final)
-
+         
+        1/0
         if self.args.mode == 'train_test':
             self.test(self.checkpoint_path_final)
             self.test(self.checkpoint_path_validation)
@@ -211,24 +212,40 @@ class Learner:
         text_inputs = torch.cat([clip.tokenize(f"a photo of a {c}") for c in object_list]).to(self.device)
         #text_features = self.model.encode_text(text)
 
-        context_clip_loader = get_clip_loader((context_clips, context_clip_labels), self.batch_size, with_labels=True)
+        
+        #context_clip_loader = get_clip_loader((context_clips, context_labels), self.args.batch_size, with_labels=True)
+        context_clip_loader = get_clip_loader((target_clips, target_labels), self.args.batch_size, with_labels=True)
 
-        for batch_context_clips, batch_context_labels in context_clip_loader:
-            batch_context_clips = batch_context_clips.to(self.device)
-            batch_context_labels = batch_context_labels.to(self.device)
-            
-            features = self.model.encode_image(batch_context_clips)
-            print(features)
-            1/0
+        task_loss = 0.0
+        target_logits = []
+        with torch.no_grad():
+            for batch_context_clips, batch_context_labels in context_clip_loader:
+                batch_context_clips = batch_context_clips.to(self.device)
+                batch_context_labels = batch_context_labels.to(self.device)
 
+                sz = batch_context_clips.size()
+                batch_context_clips = batch_context_clips.view(-1, sz[-3], sz[-2], sz[-1])
+                features = self.model.encode_image(batch_context_clips)
+                feat_dim = features.size(-1)
+                features = features.view(-1, sz[-4], feat_dim)
+                features = torch.mean(features, dim=1)
+                text_features = self.model.encode_text(text_inputs)
 
+                features /= features.norm(dim=-1, keepdim=True)
+                text_features /= text_features.norm(dim=-1, keepdim=True)
 
+                batch_target_logits = (100.0 * features @ text_features.T).softmax(dim=-1)
+                target_logits.extend(batch_target_logits.detach())
+               
+                loss_scaling = len(context_labels) / (self.args.num_lite_samples * self.args.tasks_per_batch)
+                batch_loss = loss_scaling * self.loss(batch_target_logits, batch_context_labels)
+                #batch_loss += 0.001 * self.model.feature_adapter.regularization_term(switch_device=self.args.use_two_gpus) 
+                task_loss += batch_loss.detach()
+                
 
-
-
-
-        #print(context_labels)
-        #1/0
+        target_logits = torch.stack(target_logits)
+        self.train_evaluator.update_stats(target_logits, target_labels)
+        return task_loss
 
 
     def train_task(self, task_dict):
