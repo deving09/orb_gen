@@ -310,26 +310,27 @@ class Learner:
 
                 text_inputs = torch.cat([clip.tokenize(f"a photo of a {c}") for c in object_list]).to(self.device)
                 # loop through cached target videos for the current task
-                for video_frames, video_paths, video_label in zip(cached_target_frames_by_video, cached_target_paths_by_video, cached_target_labels_by_video):
-                    video_clips = attach_frame_history(video_frames, self.args.clip_length)
-                    video_clips = video_clips.to(self.device)
-                    ### START
-                    sz = video_clips.size()
-                    video_clips = video_clips.view(-1, sz[-3], sz[-2], sz[-1])
-                    features = self.model.encode_image(video_clips)
-                    feat_dim = features.size(-1)
-                    features = features.view(-1, sz[-4], feat_dim)
-                    features = torch.mean(features, dim=1)
-                    text_features = self.model.encode_text(text_inputs)
+                with torch.no_grad():
+                    for video_frames, video_paths, video_label in zip(cached_target_frames_by_video, cached_target_paths_by_video, cached_target_labels_by_video):
+                        video_clips = attach_frame_history(video_frames, self.args.clip_length)
+                        video_clips = video_clips.to(self.device)
+                        ### START
+                        sz = video_clips.size()
+                        video_clips = video_clips.view(-1, sz[-3], sz[-2], sz[-1])
+                        features = self.model.encode_image(video_clips)
+                        feat_dim = features.size(-1)
+                        features = features.view(-1, sz[-4], feat_dim)
+                        features = torch.mean(features, dim=1)
+                        text_features = self.model.encode_text(text_inputs)
 
-                    features /= features.norm(dim=-1, keepdim=True)
-                    text_features /= text_features.norm(dim=-1, keepdim=True)
+                        features /= features.norm(dim=-1, keepdim=True)
+                        text_features /= text_features.norm(dim=-1, keepdim=True)
 
-                    video_logits = (100.0 * features @ text_features.T).softmax(dim=-1)
-                    #target_logits.extend(batch_target_logits.detach())
-                    ### END
-                    #video_logits = self.model.predict(video_clips)
-                    self.validation_evaluator.append_video(video_logits, video_label, video_paths, object_list)
+                        video_logits = (100.0 * features @ text_features.T).softmax(dim=-1)
+                        #target_logits.extend(batch_target_logits.detach())
+                        ### END
+                        #video_logits = self.model.predict(video_clips)
+                        self.validation_evaluator.append_video(video_logits, video_label, video_paths, object_list)
 
                 # reset task's params
                 # self.model._reset()
@@ -374,30 +375,31 @@ class Learner:
                 #self.model.personalise(context_clips, context_labels, ops_counter=False)
                 #torch.cuda.synchronize()
                 #self.model.personalise(context_clips, context_labels, ops_counter=self.ops_counter)
-                
-                text_inputs = torch.cat([clip.tokenize(f"a photo of a {c}") for c in object_list]).to(self.device)
+                with torch.no_grad():
+                        
+                    text_inputs = torch.cat([clip.tokenize(f"a photo of a {c}") for c in object_list]).to(self.device)
 
-                # loop through cached target videos for the current task
-                for video_frames, video_paths, video_label in zip(cached_target_frames_by_video, cached_target_paths_by_video, cached_target_labels_by_video):
-                    video_clips = attach_frame_history(video_frames, self.args.clip_length)
-                    video_clips = video_clips.to(self.device)
-                    
-                    # Start
-                    sz = video_clips.size()
-                    video_clips = video_clips.view(-1, sz[-3], sz[-2], sz[-1])
-                    features = self.model.encode_image(video_clips)
-                    feat_dim = features.size(-1)
-                    features = features.view(-1, sz[-4], feat_dim)
-                    features = torch.mean(features, dim=1)
-                    text_features = self.model.encode_text(text_inputs)
+                    # loop through cached target videos for the current task
+                    for video_frames, video_paths, video_label in zip(cached_target_frames_by_video, cached_target_paths_by_video, cached_target_labels_by_video):
+                        video_clips = attach_frame_history(video_frames, self.args.clip_length)
+                        video_clips = video_clips.to(self.device)
+                        
+                        # Start
+                        sz = video_clips.size()
+                        video_clips = video_clips.view(-1, sz[-3], sz[-2], sz[-1])
+                        features = self.model.encode_image(video_clips)
+                        feat_dim = features.size(-1)
+                        features = features.view(-1, sz[-4], feat_dim)
+                        features = torch.mean(features, dim=1)
+                        text_features = self.model.encode_text(text_inputs)
 
-                    features /= features.norm(dim=-1, keepdim=True)
-                    text_features /= text_features.norm(dim=-1, keepdim=True)
+                        features /= features.norm(dim=-1, keepdim=True)
+                        text_features /= text_features.norm(dim=-1, keepdim=True)
 
-                    video_logits = (100.0 * features @ text_features.T).softmax(dim=-1)
-                    # End
-                    #video_logits = self.model.predict(video_clips)
-                    self.test_evaluator.append_video(video_logits, video_label, video_paths, object_list)
+                        video_logits = (100.0 * features @ text_features.T).softmax(dim=-1)
+                        # End
+                        #video_logits = self.model.predict(video_clips)
+                        self.test_evaluator.append_video(video_logits, video_label, video_paths, object_list)
 
                 # reset task's params
                 #self.model._reset()
@@ -413,7 +415,7 @@ class Learner:
                     
             stats_per_user, stats_per_video = self.test_evaluator.get_mean_stats()
             stats_per_user_str, stats_per_video_str = stats_to_str(stats_per_user), stats_to_str(stats_per_video)
-            mean_ops_stats = 0.0 #self.ops_counter.get_mean_stats()
+            mean_ops_stats = 1.0 #self.ops_counter.get_mean_stats()
             print_and_log(self.logfile, f'{self.args.test_set} [{path}]\n per-user stats: {stats_per_user_str}\n per-video stats: {stats_per_video_str}\n model stats: {mean_ops_stats}\n')
             self.test_evaluator.save()
             self.test_evaluator.reset()
