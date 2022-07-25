@@ -49,7 +49,7 @@ class CLIPimf(nn.Module):
         sz = x.size()
         return x.view(-1, sz[-3], sz[-2], sz[-1]) if x.dim() >=5 else x
 
-    def forward(self, x):
+    def forward(self, x, **kwargs):
         x = self._flatten(x)
         x = self.preprocess(image)
         x = self.model.encode_image(x)
