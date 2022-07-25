@@ -145,13 +145,14 @@ class Learner:
         self.test_evaluator = TestEvaluator(self.evaluation_metrics, self.checkpoint_dir)
     
     def run(self):
+        """
         if self.args.mode == 'train' or self.args.mode == 'train_test':
             
             extractor_scale_factor=0.1 if self.args.pretrained_extractor_path else 1.0
             #self.optimizer = init_optimizer(self.model, self.args.learning_rate, extractor_scale_factor=extractor_scale_factor)
 
 
-
+            
             for epoch in range(1): #self.args.epochs):
                 losses = []
                 since = time.time()
@@ -195,6 +196,7 @@ class Learner:
             #torch.save(self.model.state_dict(), self.checkpoint_path_final)
          
         #1/0
+        """
         if self.args.mode == 'train_test':
             self.test(self.checkpoint_path_final)
             self.test(self.checkpoint_path_validation)
