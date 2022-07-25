@@ -358,7 +358,7 @@ class Learner:
         #self.init_model()
         #self.model.load_state_dict(torch.load(path, map_location=self.map_location)) 
         #self.model.set_test_mode(True)
-        self.ops_counter.set_base_params(self.model)
+        #self.ops_counter.set_base_params(self.model)
 
         with torch.no_grad():
             # loop through test tasks (num_test_users * num_test_tasks_per_user)
@@ -400,9 +400,9 @@ class Learner:
                     self.test_evaluator.append_video(video_logits, video_label, video_paths, object_list)
 
                 # reset task's params
-                self.model._reset()
+                #self.model._reset()
                 # add task's ops to self.ops_counter
-                self.ops_counter.task_complete()
+                #self.ops_counter.task_complete()
 
                 # if this is the user's last task, get the average performance for the user
                 if (step+1) % self.args.test_tasks_per_user == 0:
@@ -413,7 +413,7 @@ class Learner:
                     
             stats_per_user, stats_per_video = self.test_evaluator.get_mean_stats()
             stats_per_user_str, stats_per_video_str = stats_to_str(stats_per_user), stats_to_str(stats_per_video)
-            mean_ops_stats = self.ops_counter.get_mean_stats()
+            mean_ops_stats = 0.0 #self.ops_counter.get_mean_stats()
             print_and_log(self.logfile, f'{self.args.test_set} [{path}]\n per-user stats: {stats_per_user_str}\n per-video stats: {stats_per_video_str}\n model stats: {mean_ops_stats}\n')
             self.test_evaluator.save()
             self.test_evaluator.reset()
