@@ -322,7 +322,7 @@ class Learner:
                         if video_clips.shape[0] > 400:
                             feat_1 = self.model.encode_image(video_clips[0:400])
                             feat_2 = self.model.encode_image(video_clips[400:])
-                            features = torch.concat([feat_1, feat_2], dim=0)
+                            features = torch.cat([feat_1, feat_2], dim=0)
                         else:
                             features = self.model.encode_image(video_clips)
                         
@@ -398,7 +398,7 @@ class Learner:
                         if video_clips.shape[0] > 400:
                             feat_1 = self.model.encode_image(video_clips[0:400])
                             feat_2 = self.model.encode_image(video_clips[400:])
-                            features = torch.concat([feat_1, feat_2], dim=0)
+                            features = torch.cat([feat_1, feat_2], dim=0)
                         else:
                             features = self.model.encode_image(video_clips)
                         #features = self.model.encode_image(video_clips)
