@@ -319,6 +319,7 @@ class Learner:
                         ### START
                         sz = video_clips.size()
                         video_clips = video_clips.view(-1, sz[-3], sz[-2], sz[-1])
+                        feats = []
                         if video_clips.shape[0] > 400:
                             feat_1 = self.model.encode_image(video_clips[0:400])
                             feat_2 = self.model.encode_image(video_clips[400:])
@@ -395,12 +396,15 @@ class Learner:
                         # Start
                         sz = video_clips.size()
                         video_clips = video_clips.view(-1, sz[-3], sz[-2], sz[-1])
-                        if video_clips.shape[0] > 400:
-                            feat_1 = self.model.encode_image(video_clips[0:400])
-                            feat_2 = self.model.encode_image(video_clips[400:])
-                            features = torch.cat([feat_1, feat_2], dim=0)
-                        else:
-                            features = self.model.encode_image(video_clips)
+                        feats = [self.model.encode_image(i*200:(i+1)*200) for i in range(0, video_clips.shape[0], 200)]
+                        
+                        features = torch.cat(feats, dim=0)
+                        #if video_clips.shape[0] > 400:
+                        #    feat_1 = self.model.encode_image(video_clips[0:400])
+                        #    feat_2 = self.model.encode_image(video_clips[400:])
+                        #    features = torch.cat([feat_1, feat_2], dim=0)
+                        #else:
+                        #    features = self.model.encode_image(video_clips)
                         #features = self.model.encode_image(video_clips)
                         feat_dim = features.size(-1)
                         features = features.view(-1, sz[-4], feat_dim)
