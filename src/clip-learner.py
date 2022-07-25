@@ -396,7 +396,7 @@ class Learner:
                         # Start
                         sz = video_clips.size()
                         video_clips = video_clips.view(-1, sz[-3], sz[-2], sz[-1])
-                        feats = [self.model.encode_image(i*200:(i+1)*200) for i in range(0, video_clips.shape[0], 200)]
+                        feats = [self.model.encode_image(video_clips[i*200:(i+1)*200]) for i in range(0, video_clips.shape[0], 200)]
                         
                         features = torch.cat(feats, dim=0)
                         #if video_clips.shape[0] > 400:
