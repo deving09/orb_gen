@@ -35,7 +35,7 @@ jobs:
       sku: G2@eastus2
       #sku: G8
       command:
-         - python3 CLIP/setup.py install
+         - python3 CLIP/setup.py develop
          - python3 single-step-learner.py --data_path /mnt/data/ORB_DATA/orbit_benchmark_224 --frame_size 224
            --feature_extractor clip_vitb_32 --pretrained_extractor_path features/pretrained/resnet18_imagenet_84.pth
            --classifier proto --learn_extractor
