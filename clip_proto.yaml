@@ -1,0 +1,42 @@
+description: Default Protonets implementation from orbit repo
+
+target:
+        service: amlk8s
+        name: itplabrr1cl1 
+        vc: resrchvc
+
+environment:
+        image: pytorch/pytorch:1.8.0-cuda11.1-cudnn8-devel 
+        registry: docker.io
+        setup: 
+          - pip install torchvision==0.9.1 
+          - pip install tqdm==4.62.3
+          - pip install thop==0.0.31-2005241907
+          - pip install plotly==4.8.1 
+          - pip install ftfy regex
+          - pip install git+https://github.com/openai/CLIP.git
+
+code: 
+    local_dir: $CONFIG_DIR/src
+
+storage:
+    data:
+       #storage_account_name: dguill
+       #container_name: data
+       storage_account_name: cvgroup
+       container_name: datasets
+       mount_dir: /mnt/data
+       #remote_dir: ORB_DATA
+       #storage_id: dguill
+       #local_dir: ../ORB_DATA
+
+jobs:
+    - name: protonets_1
+      sku: G2@eastus2
+      #sku: G8
+      command:
+         - python3 single-step-learner.py --data_path /mnt/data/ORB_DATA/orbit_benchmark_224 --frame_size 224
+           --feature_extractor clip_vitb_32 --pretrained_extractor_path features/pretrained/resnet18_imagenet_84.pth
+           --classifier proto --learn_extractor
+           --context_video_type clean --target_video_type clutter 
+           --train_object_cap 10 --with_train_shot_caps --use_two_gpus
