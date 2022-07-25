@@ -22,7 +22,7 @@ def parse_args(learner='default'):
                         help="Path to model to load and test.")
     parser.add_argument("--mode", choices=["train", "test", "train_test"], default="train_test",
                         help="Whether to run training only, testing only, or both training and testing.")
-    parser.add_argument("--feature_extractor", type=str, default="resnet18", choices=["resnet18", "efficientnetb0"],
+    parser.add_argument("--feature_extractor", type=str, default="resnet18", choices=["resnet18", "efficientnetb0", "clip_vitb_32"],
                         help="Feature extractor backbone (default: resnet18).")
     parser.add_argument("--learn_extractor", action="store_true",
                         help="If True, learns all parameters of feature extractor at 0.1 of learning rate.")
