@@ -1,4 +1,4 @@
-description: Default Protonets implementation from orbit repo
+description: CLIP Protonets for orbit repo
 
 target:
         service: amlk8s
@@ -31,7 +31,7 @@ storage:
        #local_dir: ../ORB_DATA
 
 jobs:
-    - name: protonets_1
+    - name: clip_protonets
       sku: G2@eastus2
       #sku: G8
       command:
