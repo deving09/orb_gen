@@ -62,28 +62,28 @@ class CLIPimf(nn.Module):
         #pass
 
 
-def clip_vitb_32():
+def clip_vitb_32(**kwargs):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model, preprocess = clip.load('ViT-B/32', device)
     clip_model = CLIPimf(model, preprocess)
     return clip_model
 
 
-def clip_vitb_16():
+def clip_vitb_16(**kwargs):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model, preprocess = clip.load('ViT-B/16', device)
     clip_model = CLIPimf(model, preprocess)
     return clip_model
 
 
-def clip_resnet50():
+def clip_resnet50(**kwargs):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model, preprocess = clip.load('RN50', device)
     clip_model = CLIPimf(model, preprocess)
     return clip_model
 
 
-def clip_resnet101():
+def clip_resnet101(**kwargs):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model, preprocess = clip.load('RN101', device)
     clip_model = CLIPimf(model, preprocess)
