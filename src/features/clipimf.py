@@ -51,7 +51,7 @@ class CLIPimf(nn.Module):
 
     def forward(self, x, param_dict=None):
         x = self._flatten(x)
-        x = self.preprocess(image)
+        x = self.preprocess(x)
         x = self.model.encode_image(x)
 
         return x
