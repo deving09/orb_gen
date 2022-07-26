@@ -297,9 +297,11 @@ class Learner:
                 self.model.personalise(context_clips, context_labels, ops_counter=self.ops_counter)
 
                 # loop through cached target videos for the current task
-                for video_frames, video_paths, video_label in zip(cached_target_frames_by_video, cached_target_paths_by_video, cached_target_labels_by_video):
+                for video_frames, video_paths, video_label in zip(cached_target_frames_by_video, cached_target_paths_by_video, cached_target_labels_by_video):A
                     video_clips = attach_frame_history(video_frames, self.args.clip_length)
-                    video_logits = self.model.predict(video_clips)
+                    vid_logits = [self.model.predict(video_clips[i:i+self.args.batch_size]) for i in range(0, video_clips.shape[0], self.args.batch_size)]
+                    video_logits = torch.cat(vid_logits, dim=0)
+                    #video_logits = self.model.predict(video_clips)
                     self.test_evaluator.append_video(video_logits, video_label, video_paths, object_list)
 
                 # reset task's params
