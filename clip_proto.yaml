@@ -9,7 +9,7 @@ environment:
         image: pytorch/pytorch:1.8.0-cuda11.1-cudnn8-devel 
         registry: docker.io
         setup:
-          - sudo apt-get install git 
+          - sudo apt-get install git -y 
           - pip install torchvision==0.9.1 
           - pip install tqdm==4.62.3
           - pip install thop==0.0.31-2005241907
