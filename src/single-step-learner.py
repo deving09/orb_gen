@@ -297,7 +297,7 @@ class Learner:
                 self.model.personalise(context_clips, context_labels, ops_counter=self.ops_counter)
 
                 # loop through cached target videos for the current task
-                for video_frames, video_paths, video_label in zip(cached_target_frames_by_video, cached_target_paths_by_video, cached_target_labels_by_video):A
+                for video_frames, video_paths, video_label in zip(cached_target_frames_by_video, cached_target_paths_by_video, cached_target_labels_by_video):
                     video_clips = attach_frame_history(video_frames, self.args.clip_length)
                     vid_logits = [self.model.predict(video_clips[i:i+self.args.batch_size]) for i in range(0, video_clips.shape[0], self.args.batch_size)]
                     video_logits = torch.cat(vid_logits, dim=0)
