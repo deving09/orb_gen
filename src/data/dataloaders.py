@@ -31,7 +31,7 @@ class DataLoader():
                                         with_cluster_labels=dataset_info['with_cluster_labels'],
                                         with_caps=dataset_info['with_train_shot_caps'],
                                         shuffle=True,
-                                        override_num_workers=dataset_info.get("num_workers", None))
+                                        num_workers=dataset_info.get("num_workers", None))
             self.validation_queue = self.config_user_centric_queue(
                                         os.path.join(dataset_info['data_path'], 'validation'),
                                         dataset_info['test_way_method'],
@@ -46,7 +46,7 @@ class DataLoader():
                                         dataset_info['frame_size'],
                                         dataset_info['annotations_to_load'],
                                         dataset_info['test_tasks_per_user'],
-                                        override_num_workers=dataset_info.get("num_workers", None),
+                                        num_workers=dataset_info.get("num_workers", None),
                                         test_mode=True)
         if 'test' in mode:
             self.test_queue = self.config_user_centric_queue(
@@ -63,7 +63,7 @@ class DataLoader():
                                         dataset_info['frame_size'],
                                         dataset_info['annotations_to_load'],
                                         dataset_info['test_tasks_per_user'],
-                                        override_num_workers=dataset_info.get("num_workers", None),
+                                        num_workers=dataset_info.get("num_workers", None),
                                         test_mode=True)
 
     def get_train_queue(self):
