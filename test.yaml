@@ -16,11 +16,11 @@ environment:
         #registry: docker.io
         username: cvgroup
         #username: msrcvgvv
-        setup: 
-          - pip install torchvision==0.9.1
-          - pip install tqdm==4.62.3 
-          - pip install thop==0.0.31-2005241907
-          - pip install plotly==4.8.1 
+        #setup: 
+        #  - pip install torchvision==0.9.1
+        #  - pip install tqdm==4.62.3 
+        #  - pip install thop==0.0.31-2005241907
+        #  - pip install plotly==4.8.1 
 
 code: 
     local_dir: $CONFIG_DIR/src
@@ -36,7 +36,7 @@ code:
 
 jobs:
     - name: simplet_test_1
-      sku: G1@eastus2
+      sku: G1 #@eastus2
       #sku: G8
       command:
          - python3 test.py
