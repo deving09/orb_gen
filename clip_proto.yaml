@@ -42,4 +42,4 @@ jobs:
            --feature_extractor clip_vitb_32 --pretrained_extractor_path features/pretrained/resnet18_imagenet_84.pth
            --classifier proto --learn_extractor
            --context_video_type clean --target_video_type clutter 
-           --train_object_cap 10 --with_train_shot_caps --use_two_gpus --with-lite
+           --train_object_cap 10 --with_train_shot_caps --use_two_gpus --with_lite
