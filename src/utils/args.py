@@ -39,6 +39,7 @@ def parse_args(learner='default'):
                         help="Normalisation layer to use (default: basic).")
 
     # data parameters
+    parser.add_argument("--num_workers", type=int, default=8, help="Number of workers for Data Loading")
     parser.add_argument("--train_way_method", type=str, default="random", choices=["random", "max"],
                         help="Method to sample classes for a train task (default: random).")
     parser.add_argument("--test_way_method", type=str, default="max", choices=["random", "max"],

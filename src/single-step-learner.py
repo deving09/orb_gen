@@ -106,6 +106,7 @@ class Learner:
             'frame_size': self.args.frame_size,
             'annotations_to_load': self.args.annotations_to_load,
             'preload_clips': self.args.preload_clips,
+            'num_workers': self.args.num_workers
         }
         
         dataloader = DataLoader(dataset_info)

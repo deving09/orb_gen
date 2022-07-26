@@ -55,13 +55,13 @@ class DatasetQueue:
                 )
 
 class UserEpisodicDatasetQueue(DatasetQueue):
-    def __init__(self, root, way_method, object_cap, shot_method, shots, video_types, subsample_factor, num_clips, clip_length, preload_clips, frame_size, annotations_to_load, tasks_per_user, test_mode, with_cluster_labels, with_caps, shuffle):
-        DatasetQueue.__init__(self, tasks_per_user, shuffle, test_mode)
+    def __init__(self, root, way_method, object_cap, shot_method, shots, video_types, subsample_factor, num_clips, clip_length, preload_clips, frame_size, annotations_to_load, tasks_per_user, test_mode, with_cluster_labels, with_caps, shuffle, num_workers=None):
+        DatasetQueue.__init__(self, tasks_per_user, shuffle, test_mode, override_num_workers=num_workers)
         self.dataset = UserEpisodicORBITDataset(root, way_method, object_cap, shot_method, shots, video_types, subsample_factor, num_clips, clip_length, preload_clips, frame_size, annotations_to_load, test_mode, with_cluster_labels, with_caps)
         self.num_users = self.dataset.num_users
 
 class ObjectEpisodicDatasetQueue(DatasetQueue):
-    def __init__(self, root, way_method, object_cap, shot_method, shots, video_types, subsample_factor, num_clips, clip_length, preload_clips, frame_size, annotations_to_load, tasks_per_user, test_mode, with_cluster_labels, with_caps, shuffle):
-        DatasetQueue.__init__(self, tasks_per_user, shuffle, test_mode)
+    def __init__(self, root, way_method, object_cap, shot_method, shots, video_types, subsample_factor, num_clips, clip_length, preload_clips, frame_size, annotations_to_load, tasks_per_user, test_mode, with_cluster_labels, with_caps, shuffle, num_workers=None):
+        DatasetQueue.__init__(self, tasks_per_user, shuffle, test_mode, override_num_workers=num_workers)
         self.dataset = ObjectEpisodicORBITDataset(root, way_method, object_cap, shot_method, shots, video_types, subsample_factor, num_clips, clip_length, preload_clips, frame_size, annotations_to_load, test_mode, with_cluster_labels, with_caps)
         self.num_users = self.dataset.num_users
