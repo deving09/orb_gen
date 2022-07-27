@@ -6,17 +6,20 @@ target:
         vc: resrchvc
 
 environment:
-        image: pytorch/pytorch:1.8.0-cuda11.1-cudnn8-devel 
-        registry: docker.io
-        setup:
-          - sudo apt-get install git -y 
-          - pip install torchvision==0.9.1 
-          - pip install tqdm==4.62.3
-          - pip install thop==0.0.31-2005241907
-          - pip install plotly==4.8.1 
-          - pip install ftfy regex
-          - pip install git+https://github.com/openai/CLIP.git
-            # - python CLIP/setup.py develop
+        image: orb_gen:latest
+        registry: cvgroup.azurecr.io
+        username: cvgroup 
+        #image: pytorch/pytorch:1.8.0-cuda11.1-cudnn8-devel 
+        #registry: docker.io
+        #setup:
+        #- sudo apt-get install git -y 
+        #- pip install torchvision==0.9.1 
+        #- pip install tqdm==4.62.3
+        #- pip install thop==0.0.31-2005241907
+        #- pip install plotly==4.8.1 
+        #- pip install ftfy regex
+        #- pip install git+https://github.com/openai/CLIP.git
+        # - python CLIP/setup.py develop
 
 code: 
     local_dir: $CONFIG_DIR/src
