@@ -39,4 +39,4 @@ jobs:
       sku: G1 #@eastus2
       #sku: G8
       command:
-         - python3 test.py
+         - MKL_THREADING_LAYER=GNU python3 test.py
