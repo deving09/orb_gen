@@ -36,7 +36,9 @@ RUN pip3 install numpy \
     && pip3 install torchvision==0.9.1 \
     && pip install thop==0.0.31-2005241907 \
     && pip install plotly==4.8.1   \
-    && pip install tqdm==4.62.3
+    && pip install tqdm==4.62.3 \ 
+    && pip install ftfy regex \
+    && pip install git+https://github.com/openai/CLIP.git 
 
 
 #CMD ["python3"]
