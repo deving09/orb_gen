@@ -1,0 +1,37 @@
+description: CLIP Protonets for Singularity
+
+target:
+        service: amlk8s
+        name: itplabrr1cl1 
+        vc: resrchvc
+
+environment:
+        image: orb_gen:latest
+        registry: cvgroup.azurecr.io
+        username: cvgroup 
+
+code: 
+    local_dir: $CONFIG_DIR/src
+
+storage:
+    data:
+       #storage_account_name: dguill
+       #container_name: data
+       storage_account_name: cvgroup
+       container_name: datasets
+       mount_dir: /mnt/data
+       #remote_dir: ORB_DATA
+       #storage_id: dguill
+       #local_dir: ../ORB_DATA
+
+jobs:
+    - name: clip_singularity
+      sku: G2
+      #sku: G8
+      command:
+         #- python3 CLIP/setup.py develop
+         - MKL_THREADING_LAYER=GNU python3 single-step-learner.py --data_path /mnt/data/ORB_DATA/orbit_benchmark_224 --frame_size 224
+           --feature_extractor clip_vitb_32 --pretrained_extractor_path features/pretrained/resnet18_imagenet_84.pth
+           --classifier proto --learn_extractor
+           --context_video_type clean --target_video_type clutter 
+           --train_object_cap 10 --with_train_shot_caps --use_two_gpus --with_lite --batch_size 64 --num_workers 16
