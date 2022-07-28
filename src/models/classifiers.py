@@ -48,7 +48,8 @@ class LinearClassifier(nn.Module):
         super().__init__()
         self.in_size = in_size
 
-    def configure(self, out_size, device, init_zeros=True):
+    #def configure(self, out_size, device, init_zeros=True):
+    def configure(self, context_features, context_labels, ops_counter=None):
         """
         Function that creates and initialises a linear classification layer.
         :param out_size: (int) Number of classes in classification layer.
@@ -56,14 +57,14 @@ class LinearClassifier(nn.Module):
         :init_zeros: (bool) If True, initialise classification layer with zeros, otherwise use Kaiming uniform.
         :return: Nothing.
         """
-        self.linear = nn.Linear(self.in_size, out_size)
-        if init_zeros:
-            nn.init.zeros_(self.linear.weight)
-            nn.init.zeros_(self.linear.bias)
-        else:
-            nn.init.kaiming_uniform_(self.linear.weight, mode="fan_out")
-            nn.init.zeros_(self.linear.bias)
-        self.linear.to(device)
+        self.linear = nn.Linear(self.in_size, context_features.size(0)) #out_size)
+        #if init_zeros:
+        #    nn.init.zeros_(self.linear.weight)
+        #    nn.init.zeros_(self.linear.bias)
+        #else:
+        nn.init.kaiming_uniform_(self.linear.weight, mode="fan_out")
+        nn.init.zeros_(self.linear.bias)
+        #self.linear.to(device)
   
     def predict(self, features, ops_counter=None):
         """
