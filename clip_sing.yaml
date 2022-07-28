@@ -9,11 +9,11 @@ environment:
         image: orb_gen:latest
         registry: cvgroup.azurecr.io
         username: cvgroup 
-        setup:
-        - sudo apt-get install git -y
-        - pip install ftfy regex 
-        - pip install git+https://github.com/openai/CLIP.git
-        - python CLIP/setup.py develop 
+        #setup:
+        #- pip install ftfy regex 
+        #- pip install git+https://github.com/openai/CLIP.git
+        #- python CLIP/setup.py develop 
+        #- sudo apt-get install git -y
 
 code: 
     local_dir: $CONFIG_DIR/src
