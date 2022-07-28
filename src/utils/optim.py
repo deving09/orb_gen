@@ -13,6 +13,7 @@ def cross_entropy(test_logits, test_labels, reduction='mean'):
     
 def init_optimizer(model, lr, optimizer_type='adam', extractor_scale_factor=1.0, frozen=False):
     if frozen:
+        feature_extractor_params = list(map(id, model.feature_extractor.parameters()))
         base_params = filter(lambda p: id(p) not in feature_extractor_params, model.parameters())
         optimizer_fn = optimizers[optimizer_type]
         optimizer = optimizer_fn([
