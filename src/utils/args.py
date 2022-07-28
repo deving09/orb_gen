@@ -25,6 +25,8 @@ def parse_args(learner='default'):
     parser.add_argument("--feature_extractor", type=str, default="resnet18", choices=["resnet18", "efficientnetb0", "clip_vitb_32", "clip_vitb_16", 
                         "clip_resnet50", "clip_resnet101"],
                         help="Feature extractor backbone (default: resnet18).")
+    parser.add_argument("--frozen", action="store_true",
+                        help="If True, freezes the feature extractor parameters")
     parser.add_argument("--learn_extractor", action="store_true",
                         help="If True, learns all parameters of feature extractor at 0.1 of learning rate.")
     parser.add_argument("--pretrained_extractor_path", type=str, default=None, 

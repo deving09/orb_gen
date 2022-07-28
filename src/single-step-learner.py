@@ -135,7 +135,8 @@ class Learner:
         if self.args.mode == 'train' or self.args.mode == 'train_test':
             
             extractor_scale_factor=0.1 if self.args.pretrained_extractor_path else 1.0
-            self.optimizer = init_optimizer(self.model, self.args.learning_rate, extractor_scale_factor=extractor_scale_factor)
+            self.optimizer = init_optimizer(self.model, self.args.learning_rate, 
+                    extractor_scale_factor=extractor_scale_factor, frozen=self.args.frozen)
             
             for epoch in range(self.args.epochs):
                 losses = []
