@@ -39,7 +39,7 @@ class LinearClassifier(nn.Module):
     """
     Class for a linear classification layer.
     """
-    def __init__(self, in_size):
+    def __init__(self, in_size): #, device=None):
         """
         Creates instance of LinearClassifier.
         :param in_size: (int) Size of feature extractor output.
@@ -47,6 +47,10 @@ class LinearClassifier(nn.Module):
         """ 
         super().__init__()
         self.in_size = in_size
+        #self.device = device
+
+    def _set_device(self, device):
+        self.device = device
 
     #def configure(self, out_size, device, init_zeros=True):
     def configure(self, context_features, context_labels, ops_counter=None):
@@ -57,14 +61,17 @@ class LinearClassifier(nn.Module):
         :init_zeros: (bool) If True, initialise classification layer with zeros, otherwise use Kaiming uniform.
         :return: Nothing.
         """
-        self.linear = nn.Linear(self.in_size, context_features.size(0)) #out_size)
+        self.linear = nn.Linear(self.in_size, context_features.size(0), bias=True) 
         #if init_zeros:
         #    nn.init.zeros_(self.linear.weight)
         #    nn.init.zeros_(self.linear.bias)
         #else:
+        
         nn.init.kaiming_uniform_(self.linear.weight, mode="fan_out")
         nn.init.zeros_(self.linear.bias)
-        #self.linear.to(device)
+        self.linear.weight.data = self.linear.weight.type(context_features.dtype)
+        self.linear.bias.data = self.linear.bias.type(context_features.dtype)
+        self.linear.to(self.device)
   
     def predict(self, features, ops_counter=None):
         """
@@ -73,6 +80,7 @@ class LinearClassifier(nn.Module):
         :return: (torch.Tensor) Logits over object classes for each feature.
         """
         t1 = time.time()
+
         out = self.linear(features)
         if ops_counter:
             torch.cuda.synchronize()
@@ -94,6 +102,9 @@ class HeadClassifier(nn.Module):
         :return: Nothing.
         """
         super().__init__()
+
+    def _set_device(self, device):
+        self.device = device
     
     def _build_class_reps(self, context_features, context_labels, ops_counter):
         class_reps = OrderedDict()

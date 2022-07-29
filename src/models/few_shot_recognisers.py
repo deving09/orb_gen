@@ -106,6 +106,7 @@ class FewShotRecogniser(nn.Module):
 
     def _set_device(self, device):
         self.device = device
+        self.classifier._set_device(self.device)
 
     def _send_to_device(self):
         """
