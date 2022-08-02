@@ -6,14 +6,16 @@ target:
         vc: resrchvc
 
 environment:
-        image: orb_gen:latest
-        registry: cvgroup.azurecr.io
-        username: cvgroup 
-        #setup:
-        #- pip install ftfy regex 
-        #- pip install git+https://github.com/openai/CLIP.git
-        #- python CLIP/setup.py develop 
-        #- sudo apt-get install git -y
+        image: base/job/pytorch/rocm4.5.2_ubuntu18.04_py3.8_pytorch_1.8.1:20220509T151538593
+        registry: singularitybase.azurecr.io 
+        #image: orb_gen:latest
+        #registry: cvgroup.azurecr.io
+        #username: cvgroup 
+        setup:
+          - sudo apt-get install git -y
+          - pip install ftfy regex 
+          - pip install git+https://github.com/openai/CLIP.git
+          - python CLIP/setup.py develop 
 
 code: 
     local_dir: $CONFIG_DIR/src
@@ -35,7 +37,7 @@ jobs:
       #sku: G8
       command:
          #- python3 CLIP/setup.py develop
-         - MKL_THREADING_LAYER=GNU python3 single-step-learner.py --data_path /mnt/data/ORB_DATA/orbit_benchmark_224 --frame_size 224
+         - MKL_THREADING_LAYER=GNU python single-step-learner.py --data_path /mnt/data/ORB_DATA/orbit_benchmark_224 --frame_size 224
            --feature_extractor clip_vitb_32 --pretrained_extractor_path features/pretrained/resnet18_imagenet_84.pth
            --classifier proto --learn_extractor
            --context_video_type clean --target_video_type clutter 

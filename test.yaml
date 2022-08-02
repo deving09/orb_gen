@@ -6,9 +6,11 @@ target:
         vc: resrchvc
 
 environment:
-        image: orb_gen:latest
-        registry: cvgroup.azurecr.io
-        username: cvgroup
+        image: base/job/pytorch/rocm4.5.2_ubuntu18.04_py3.8_pytorch_1.8.1:20220509T151538593  
+        registry: singularitybase.azurecr.io
+        #image: orb_gen:latest
+        #registry: cvgroup.azurecr.io
+        #username: cvgroup
 
 code: 
     local_dir: $CONFIG_DIR/src
