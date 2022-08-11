@@ -42,6 +42,7 @@ class CLIPimf(nn.Module):
         device = "cuda" if torch.cuda.is_available() else "cpu"
         self.device = device
         self.model = model
+        self.convert_to_fp32()
         self.preprocess = preprocess
         #self.model, self.preprocess = clip.load('ViT-B/32', self.device)
     
@@ -55,6 +56,11 @@ class CLIPimf(nn.Module):
         x = self.model.encode_image(x)
 
         return x
+
+    def convert_to_fp32(self):
+        for p in self.model.parameters():
+            p.data = p.data.float()
+            #p.grad.data = p.grad.data.float()
 
     @property
     def output_size(self):
