@@ -1,29 +1,20 @@
-# Comment
-#FROM pytorch/pytorch:1.8.0-cuda11.1-cudnn8-devel
-#FROM pytorch/pytorch:1.8.0-cuda11.1-cudnn8-devel
-FROM singularitybase.azurecr.io/base/job/pytorch/rocm4.5.2_ubuntu18.04_py3.8_pytorch_1.8.1:20220509T151538593
-#USER root
+ARG BASE_IMAGE
+ARG VALIDATOR_IMAGE
 
-#RUN  apt-get update \
-#  && apt-get install wget unzip zip -y
-#RUN apt install wget
-#RUN wget https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb
-#RUN dpkg -i packages-microsoft-prod.deb
-#RUN apt-get -y update
-#RUN apt-get -y install blobfuse libcurl3-gnutls
+FROM $BASE_IMAGE as base
+FROM $VALIDATOR_IMAGE as validator
 
+FROM base
 
-# Create a non-root user and switch to it.
-#USER user
-
-# All users can use /home/user as their home directory.
-#ENV HOME=/home/user
-#RUN chmod 777 /home/user
-
-#RUN sudo apt update
-#RUN apt install git -y
-
-#WORKDIR /app
+# install software needed for the workload
+# this example is installing figlet
+RUN apt-get update && \
+    apt-get install --no-install-recommends --no-install-suggests -yq \
+        figlet && \
+    rm -rf /var/lib/apt/lists/* && \
+    apt-get purge --auto-remove && \
+    apt-get clean && \
+    figlet Singularity
 
 RUN pip install numpy \
     && pip install pillow \
@@ -39,7 +30,11 @@ RUN pip install torchvision==0.9.1 \
   && pip install plotly==4.8.1   \
   && pip install tqdm==4.62.3
 
-RUN pip install  git+https://github.com/openai/CLIP.git 
+RUN pip install  git+https://github.com/openai/CLIP.git \
+    && python CLIP/setup.py develop
 
+# get the validation scripts
+COPY --from=validator /validations /opt/microsoft/_singularity/validations/
 
-#CMD ["python3"]
+# run the validation
+RUN /opt/microsoft/_singularity/validations/validator.sh
