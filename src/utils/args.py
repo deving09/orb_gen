@@ -139,8 +139,8 @@ def verify_args(learner, args):
     if len(args.annotations_to_load) and args.no_preload_clips:
         sys.exit('{:}error: loading annotations with --annotations_to_load is currently not supported with --no_preload_clips{:}'.format(cred, cend))
 
-    if 'train' in args.mode and not args.learn_extractor and not args.adapt_features:
-        sys.exit('{:}error: at least one of "--learn_extractor" and "--adapt_features" must be used during training{:}'.format(cred, cend))
+    #if 'train' in args.mode and not args.learn_extractor and not args.adapt_features:
+    #    sys.exit('{:}error: at least one of "--learn_extractor" and "--adapt_features" must be used during training{:}'.format(cred, cend))
 
     if args.frame_size == 84:
         if 'resnet18' in args.feature_extractor:

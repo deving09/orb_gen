@@ -106,6 +106,7 @@ class FewShotRecogniser(nn.Module):
 
     def _set_device(self, device):
         self.device = device
+        self.classifier._set_device(self.device)
 
     def _send_to_device(self):
         """
@@ -328,11 +329,19 @@ class MultiStepFewShotRecogniser(FewShotRecogniser):
         """
         lr, loss_fn, optimizer_type, extractor_scale_factor = learning_args
         num_classes = len(torch.unique(context_clip_labels))
-        self.configure_classifier(num_classes, init_zeros=True)
+        #self.configure_classifier(num_classes, init_zeros=True)
         self.configure_feature_adapter()
         inner_loop_optimizer = init_optimizer(self, lr, optimizer_type, extractor_scale_factor)
+        
 
         context_clip_loader = get_clip_loader((context_clips, context_clip_labels), self.batch_size, with_labels=True)
+        
+        task_embedding = None # multi-step methods do not use set encoder
+        self.feature_adapter_params = self._get_feature_adapter_params(task_embedding, ops_counter)
+        features = self._get_features_in_batches(get_clip_loader(context_clips, self.batch_size), self.feature_adapter_params, ops_counter, context=True)
+        features = self._pool_features(features, ops_counter)
+        features = features.detach()
+        self.classifier.configure(features, context_clip_labels, ops_counter)
         for _ in range(self.num_grad_steps):
             for batch_context_clips, batch_context_labels in context_clip_loader:
                 batch_context_clips = batch_context_clips.to(self.device)
@@ -392,6 +401,7 @@ class MultiStepFewShotRecogniser(FewShotRecogniser):
         :init_zeros: (bool) If True, initialise classification layer with zeros, otherwise use Kaiming uniform.
         :return: Nothing.
         """
+        #self.classifier.configure(self.context_features, context_labels[shuffled_idxs])
         self.classifier.configure(num_classes, self.device, init_zeros=init_zeros)
 
     def configure_feature_adapter(self):

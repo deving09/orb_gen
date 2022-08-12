@@ -1,0 +1,44 @@
+description: Default Protonets implementation from orbit repo
+
+target:
+        service: amlk8s
+        name: itplabrr1cl1 
+        vc: resrchvc
+
+environment:
+        image: orb_gen:latest
+        registry: cvgroup.azurecr.io
+        username: cvgroup
+        #image: base/job/pytorch/1.8.0-cuda11.1-a100:20220509T151538446
+        #registry: singularitybase.azurecr.io
+        #setup:
+          #- sudo apt-get install git -y
+          # - sudo pip install torchvision==0.9.1 
+          # - pip install tqdm==4.62.3
+          # - pip install thop==0.0.31-2005241907
+          # - pip install plotly==4.8.1 
+          # - pip install torchvision==0.9.1
+          # - pip install ftfy regex 
+          #- pip install git+https://github.com/openai/CLIP.git
+          #-   python CLIP/setup.py develop 
+          #image: base/job/pytorch/rocm4.5.2_ubuntu18.04_py3.8_pytorch_1.8.1:20220509T151538593  
+          #registry: singularitybase.azurecr.io
+
+code: 
+    local_dir: $CONFIG_DIR/src
+
+    #storage:
+    #data:
+    #   storage_account_name: dguill
+    #   container_name: data
+    #   mount_dir: /mnt/data
+    #   #remote_dir: ORB_DATA
+    #   #storage_id: dguill
+    #   #local_dir: ../ORB_DATA
+
+jobs:
+    - name: sing_simplet_test
+      sku: NDv2g1:G1 #G1 #@eastus2
+      #sku: G8
+      command:
+         - MKL_THREADING_LAYER=GNU python test.py

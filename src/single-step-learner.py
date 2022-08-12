@@ -224,10 +224,16 @@ class Learner:
             batch_loss += 0.001 * self.model.feature_adapter.regularization_term(switch_device=self.args.use_two_gpus) 
             batch_loss.backward(retain_graph=False)
             task_loss += batch_loss.detach()
+
+            if batch_loss.isnan():
+                print(batch_loss)
+                print(batch_target_logits)
+                print(batch_target_labels)
+                1/0
             
             # reset task's params
             self.model._reset()
-
+        
         target_logits = torch.stack(target_logits)
         self.train_evaluator.update_stats(target_logits, target_labels)
         return task_loss
