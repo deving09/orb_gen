@@ -124,18 +124,7 @@ class Learner:
         model_clip, preprocess = clip.load('ViT-B/32', self.device)
         self.model = model_clip
         self.prepreocess = preprocess
-        
 
-        """
-        self.model = SingleStepFewShotRecogniser(
-                        self.args.pretrained_extractor_path, self.args.feature_extractor, self.args.batch_normalisation,
-                        self.args.adapt_features, self.args.classifier, self.args.clip_length, self.args.batch_size,
-                        self.args.learn_extractor, self.args.feature_adaptation_method, self.args.use_two_gpus, self.args.num_lite_samples
-                    )
-        self.model._register_extra_parameters()
-        self.model._set_device(self.device)
-        self.model._send_to_device()
-        """
         
     def init_evaluators(self):
         self.train_metrics = ['frame_acc']
@@ -145,58 +134,6 @@ class Learner:
         self.test_evaluator = TestEvaluator(self.evaluation_metrics, self.checkpoint_dir)
     
     def run(self):
-        """
-        if self.args.mode == 'train' or self.args.mode == 'train_test':
-            
-            extractor_scale_factor=0.1 if self.args.pretrained_extractor_path else 1.0
-            #self.optimizer = init_optimizer(self.model, self.args.learning_rate, extractor_scale_factor=extractor_scale_factor)
-
-
-            
-            for epoch in range(1): #self.args.epochs):
-                losses = []
-                since = time.time()
-                torch.set_grad_enabled(True)
-                #self.model.set_test_mode(False)
-                
-                train_tasks = self.train_queue.get_tasks()
-                total_steps = len(train_tasks)
-                for step, task_dict in enumerate(train_tasks):
-
-                    t1 = time.time()
-                    #print(task_dict)
-                    task_loss = self.clip_task(task_dict)
-                    #task_loss = self.train_task_fn(task_dict)
-                    task_time = time.time() - t1
-                    losses.append(task_loss.detach())
-                    
-                    if self.args.print_by_step:
-                        current_stats_str = stats_to_str(self.train_evaluator.get_current_stats())
-                        print_and_log(self.logfile, f'epoch [{epoch+1}/{self.args.epochs}][{step+1}/{total_steps}], train loss: {task_loss.item():.7f}, {current_stats_str.strip()}, time/task: {int(task_time/60):d}m{int(task_time%60):02d}s')
-
-                    #if ((step + 1) % self.args.tasks_per_batch == 0) or (step == (total_steps - 1)):
-                    #    self.optimizer.step()
-                    #    self.optimizer.zero_grad()
-                
-                mean_stats = self.train_evaluator.get_mean_stats()
-                mean_epoch_loss = torch.Tensor(losses).mean().item()
-                seconds = time.time() - since
-                # print
-                print_and_log(self.logfile, '-'*150)
-                print_and_log(self.logfile, f'epoch [{epoch+1}/{self.args.epochs}] train loss: {mean_epoch_loss:.7f} {stats_to_str(mean_stats)} time/epoch: {int(seconds/60):d}m{int(seconds%60):02d}s')
-                print_and_log(self.logfile, '-'*150)
-                self.train_evaluator.reset()
-                #self.save_checkpoint(epoch + 1)
-
-                # validate
-                #if (epoch + 1) >= self.args.validation_on_epoch:
-                self.validate()
-            
-            # save the final model
-            #torch.save(self.model.state_dict(), self.checkpoint_path_final)
-         
-        #1/0
-        """
         if self.args.mode == 'train_test':
             self.test(self.checkpoint_path_final)
             self.test(self.checkpoint_path_validation)
@@ -212,10 +149,7 @@ class Learner:
         context_clips, context_paths, context_labels, target_clips, target_paths, target_labels, object_list = unpack_task(task_dict, self.device, target_to_device=True, preload_clips=self.args.preload_clips)
 
         text_inputs = torch.cat([clip.tokenize(f"a photo of a {c}") for c in object_list]).to(self.device)
-        #text_features = self.model.encode_text(text)
-
         
-        #context_clip_loader = get_clip_loader((context_clips, context_labels), self.args.batch_size, with_labels=True)
         context_clip_loader = get_clip_loader((target_clips, target_labels), self.args.batch_size, with_labels=True)
 
         task_loss = 0.0
@@ -241,7 +175,6 @@ class Learner:
                
                 loss_scaling = len(context_labels) / (self.args.num_lite_samples * self.args.tasks_per_batch)
                 batch_loss = loss_scaling * self.loss(batch_target_logits, batch_context_labels)
-                #batch_loss += 0.001 * self.model.feature_adapter.regularization_term(switch_device=self.args.use_two_gpus) 
                 task_loss += batch_loss.detach()
                 
 
@@ -367,8 +300,8 @@ class Learner:
 
         #self.init_model()
         #self.model.load_state_dict(torch.load(path, map_location=self.map_location)) 
-        #self.model.set_test_mode(True)
-        #self.ops_counter.set_base_params(self.model)
+        self.model.set_test_mode(True)
+        self.ops_counter.set_base_params(self.model)
 
         with torch.no_grad():
             # loop through test tasks (num_test_users * num_test_tasks_per_user)
