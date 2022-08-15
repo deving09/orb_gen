@@ -190,7 +190,7 @@ class Learner:
     def train_task(self, task_dict):
         context_clips, context_paths, context_labels, target_clips, target_paths, target_labels, object_list = unpack_task(task_dict, self.device, target_to_device=True, preload_clips=self.args.preload_clips)
 
-        self.model.personalise(context_clips, context_labels)
+        self.model.personalise(context_clips, context_labels, object_list=object_list)
         target_logits = self.model.predict(target_clips)
         self.train_evaluator.update_stats(target_logits, target_labels)
         
@@ -213,7 +213,7 @@ class Learner:
         target_logits = []
         target_clip_loader = get_clip_loader((target_clips, target_labels), self.args.batch_size, with_labels=True)
         for batch_target_clips, batch_target_labels in target_clip_loader:
-            self.model.personalise_with_lite(context_clips, context_labels)
+            self.model.personalise_with_lite(context_clips, context_labels, object_list=object_list)
             batch_target_clips = batch_target_clips.to(device=self.device)
             batch_target_labels = batch_target_labels.to(device=self.device)
             batch_target_logits = self.model.predict_a_batch(batch_target_clips)  
@@ -251,7 +251,7 @@ class Learner:
                 if step % self.args.test_tasks_per_user == 0:
                     cached_target_frames_by_video, cached_target_paths_by_video, cached_target_labels_by_video = target_frames_by_video, target_paths_by_video, target_labels_by_video
 
-                self.model.personalise(context_clips, context_labels)
+                self.model.personalise(context_clips, context_labels, object_list=object_list)
 
                 # loop through cached target videos for the current task
                 for video_frames, video_paths, video_label in zip(cached_target_frames_by_video, cached_target_paths_by_video, cached_target_labels_by_video):
@@ -299,9 +299,9 @@ class Learner:
                     cached_target_frames_by_video, cached_target_paths_by_video, cached_target_labels_by_video = target_frames_by_video, target_paths_by_video, target_labels_by_video
 
                 # dummy warm-up to get correct timing
-                self.model.personalise(context_clips, context_labels, ops_counter=False)
+                self.model.personalise(context_clips, context_labels, ops_counter=False, object_list=object_list)
                 torch.cuda.synchronize()
-                self.model.personalise(context_clips, context_labels, ops_counter=self.ops_counter)
+                self.model.personalise(context_clips, context_labels, ops_counter=self.ops_counter, object_list=object_list)
 
                 # loop through cached target videos for the current task
                 for video_frames, video_paths, video_label in zip(cached_target_frames_by_video, cached_target_paths_by_video, cached_target_labels_by_video):

@@ -35,62 +35,11 @@ from collections import OrderedDict
 
 from models.mlps import DenseResidualBlock
 
-class LinearClassifier(nn.Module):
-    """
-    Class for a linear classification layer.
-    """
-    def __init__(self, in_size): #, device=None):
-        """
-        Creates instance of LinearClassifier.
-        :param in_size: (int) Size of feature extractor output.
-        :return: Nothing.
-        """ 
-        super().__init__()
-        self.in_size = in_size
-        #self.device = device
 
-    def _set_device(self, device):
-        self.device = device
 
-    #def configure(self, out_size, device, init_zeros=True):
-    def configure(self, context_features, context_labels, ops_counter=None):
-        """
-        Function that creates and initialises a linear classification layer.
-        :param out_size: (int) Number of classes in classification layer.
-        :param device: (torch.device) Device to move classification layer to.
-        :init_zeros: (bool) If True, initialise classification layer with zeros, otherwise use Kaiming uniform.
-        :return: Nothing.
-        """
-        self.linear = nn.Linear(self.in_size, context_features.size(0), bias=True) 
-        #if init_zeros:
-        #    nn.init.zeros_(self.linear.weight)
-        #    nn.init.zeros_(self.linear.bias)
-        #else:
-        
-        nn.init.kaiming_uniform_(self.linear.weight, mode="fan_out")
-        nn.init.zeros_(self.linear.bias)
-        self.linear.weight.data = self.linear.weight.type(context_features.dtype)
-        self.linear.bias.data = self.linear.bias.type(context_features.dtype)
-        self.linear.to(self.device)
-  
-    def predict(self, features, ops_counter=None):
-        """
-        Function that passes a batch of target features through linear classification layer to get logits over object classes for each feature.
-        :param features: (torch.Tensor) Batch of features.
-        :return: (torch.Tensor) Logits over object classes for each feature.
-        """
-        t1 = time.time()
 
-        out = self.linear(features)
-        if ops_counter:
-            torch.cuda.synchronize()
-            ops_counter.log_time(time.time() - t1)
-            ops_counter.compute_macs(self.linear, features)
-        
-        return out
 
-    def reset(self):
-        self.linear = None
+
 
 class HeadClassifier(nn.Module):
     """
@@ -162,7 +111,7 @@ class VersaClassifier(HeadClassifier):
         """ 
         return F.linear(target_features, self.param_dict['weight'], self.param_dict['bias'])
 
-    def configure(self, context_features, context_labels, ops_counter=None):
+    def configure(self, context_features, context_labels, ops_counter=None, object_list=None):
         """
         Function that passes per-class context features through two hyper-networks to generate the weight vector and bias scalar for each class in a linear classification layer.
         :param context_features: (torch.Tensor) Context features.
@@ -215,7 +164,7 @@ class PrototypicalClassifier(HeadClassifier):
         """ 
         return F.linear(target_features, self.param_dict['weight'], self.param_dict['bias'])
 
-    def configure(self, context_features, context_labels, ops_counter=None):
+    def configure(self, context_features, context_labels, ops_counter=None, object_list=None):
         """
         Function that computes the per-class mean of context features and sets this as the class weight vector in a linear classification layer.
         :param context_features: (torch.Tensor) Context features.
@@ -249,6 +198,128 @@ class PrototypicalClassifier(HeadClassifier):
         self.param_dict['weight'] = torch.cat(class_weight, dim=0)
         self.param_dict['bias'] = torch.reshape(torch.cat(class_bias, dim=1), [num_classes, ])
         
+
+
+class CLIPLinearClassifier(nn.Module):
+    """
+    Class for a linear based on CLIP model
+    """
+    
+    def __init__(self, in_size, clip_model):
+        """
+        Creates instance of CLIPLinearClassifier.
+        :param in_size (int) Size of Feature extractor output.
+        :return: Nothing.
+        """
+        super().__init__()
+        self.in_size = in_size
+        self.clip_model = clip_model
+        pass
+
+    def _set_device(self, device):
+        self.device = device
+
+
+    def configure(self, context_features, context_labels, ops_counter=None, object_list=None):
+        """
+        Function that creates and initialises a linear classification layer based on text
+        prompts
+        """
+
+        text_inputs = torch.cat([clip.tokenize(f"a photo of a {c}") for c in object_list]).to(self.device)
+        text_features = self.model.encode_text(text_inputs)
+        text_features /= text_features.norm(dim=1, keepdim=True)
+        
+        self.linear = nn.Linear(self.in_size, n_cls, bias=True) 
+        
+        nn.init.kaiming_uniform_(self.linear.weight, mode="fan_out")
+        nn.init.zeros_(self.linear.bias)
+        self.linear.weight.data = text_features #context_features.dtype)
+        #self.linear.bias.data = self.linear.bias.type(context_features.dtype)
+        self.linear.to(self.device)
+
+
+    def predict(self, features, ops_counter=None):
+        """
+        Function that passes a batch of target features through linear classification layer to get logits over object classes for each feature.
+        :param features: (torch.Tensor) Batch of features.
+        :return: (torch.Tensor) Logits over object classes for each feature.
+        """
+        t1 = time.time()
+
+        out = self.linear(features)
+        if ops_counter:
+            torch.cuda.synchronize()
+            ops_counter.log_time(time.time() - t1)
+            ops_counter.compute_macs(self.linear, features)
+        
+        return out
+
+    def reset(self):
+        self.linear = None
+
+
+class LinearClassifier(HeadClassifier):
+    """
+    Class for a linear classification layer.
+    """
+    def __init__(self, in_size): #, device=None):
+        """
+        Creates instance of LinearClassifier.
+        :param in_size: (int) Size of feature extractor output.
+        :return: Nothing.
+        """ 
+        super().__init__()
+        self.in_size = in_size
+        #self.device = device
+
+    def _set_device(self, device):
+        self.device = device
+
+    #def configure(self, out_size, device, init_zeros=True):
+    def configure(self, context_features, context_labels, ops_counter=None, object_list=None):
+        """
+        Function that creates and initialises a linear classification layer.
+        :param out_size: (int) Number of classes in classification layer.
+        :param device: (torch.device) Device to move classification layer to.
+        :init_zeros: (bool) If True, initialise classification layer with zeros, otherwise use Kaiming uniform.
+        :return: Nothing.
+        """
+        n_cls = len(torch.unique(context_labels))
+        self.linear = nn.Linear(self.in_size, n_cls, bias=True) 
+       
+       #if init_zeros:
+        #    nn.init.zeros_(self.linear.weight)
+        #    nn.init.zeros_(self.linear.bias)
+        #else:
+        
+        nn.init.kaiming_uniform_(self.linear.weight, mode="fan_out")
+        nn.init.zeros_(self.linear.bias)
+        self.linear.weight.data = self.linear.weight.type(context_features.dtype)
+        self.linear.bias.data = self.linear.bias.type(context_features.dtype)
+        self.linear.to(self.device)
+  
+    def predict(self, features, ops_counter=None):
+        """
+        Function that passes a batch of target features through linear classification layer to get logits over object classes for each feature.
+        :param features: (torch.Tensor) Batch of features.
+        :return: (torch.Tensor) Logits over object classes for each feature.
+        """
+        t1 = time.time()
+
+        out = self.linear(features)
+        if ops_counter:
+            torch.cuda.synchronize()
+            ops_counter.log_time(time.time() - t1)
+            ops_counter.compute_macs(self.linear, features)
+        
+        return out
+
+    def reset(self):
+        self.linear = None
+
+
+
 class MahalanobisClassifier(HeadClassifier):
     """
     Class for a Mahalanobis classifier (https://github.com/peymanbateni/simple-cnaps). Computes per-class distributions using context features. Target features are classified by the shortest Mahalanobis distance to these distributions.
@@ -261,7 +332,7 @@ class MahalanobisClassifier(HeadClassifier):
         super().__init__()
         self.param_dict = {}
 
-    def configure(self, context_features, context_labels, ops_counter=None):
+    def configure(self, context_features, context_labels, ops_counter=None, object_list=None):
         """
         Function that computes a per-class distribution (mean, precision) using the context features.
         :param context_features: (torch.Tensor) Context features.

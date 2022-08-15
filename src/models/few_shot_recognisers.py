@@ -318,7 +318,7 @@ class MultiStepFewShotRecogniser(FewShotRecogniser):
 
         self.num_grad_steps = num_grad_steps
 
-    def personalise(self, context_clips, context_clip_labels, learning_args, ops_counter=None):
+    def personalise(self, context_clips, context_clip_labels, learning_args, ops_counter=None, object_list=None):
         """
         Function that learns a new task by taking a fixed number of gradient steps on the task's context set. For each task, a new linear classification layer is added (and FiLM layers if self.adapt_features == True).
         :param context_clips: (np.ndarray or torch.Tensor) Context clips (either as paths or tensors), each composed of self.clip_length contiguous frames.
@@ -341,7 +341,7 @@ class MultiStepFewShotRecogniser(FewShotRecogniser):
         features = self._get_features_in_batches(get_clip_loader(context_clips, self.batch_size), self.feature_adapter_params, ops_counter, context=True)
         features = self._pool_features(features, ops_counter)
         features = features.detach()
-        self.classifier.configure(features, context_clip_labels, ops_counter)
+        self.classifier.configure(features, context_clip_labels, ops_counter, object_list=object_list)
         for _ in range(self.num_grad_steps):
             for batch_context_clips, batch_context_labels in context_clip_loader:
                 batch_context_clips = batch_context_clips.to(self.device)
@@ -391,7 +391,7 @@ class MultiStepFewShotRecogniser(FewShotRecogniser):
         features = self._pool_features(features, ops_counter)
         return self.classifier.predict(features, ops_counter)
 
-    def personalise_with_lite(self, context_clips, context_labels):
+    def personalise_with_lite(self, context_clips, context_labels, object_list=None):
         NotImplementedError
 
     def configure_classifier(self, num_classes, init_zeros=False):
@@ -427,7 +427,7 @@ class SingleStepFewShotRecogniser(FewShotRecogniser):
             adapt_features, classifier, clip_length, batch_size, learn_extractor,feature_adaptation_method, use_two_gpus)
         self.num_lite_samples = num_lite_samples
 
-    def personalise(self, context_clips, context_labels, ops_counter=None):
+    def personalise(self, context_clips, context_labels, ops_counter=None, object_list=None):
         """
         Function that learns a new task by performing a forward pass of the task's context set.
         :param context_clips: (np.ndarray or torch.Tensor) Context clips (either as paths or tensors), each composed of self.clip_length contiguous frames.
@@ -440,9 +440,9 @@ class SingleStepFewShotRecogniser(FewShotRecogniser):
         self.feature_adapter_params = self._get_feature_adapter_params(task_embedding, ops_counter)
         context_features = self._get_features_in_batches(context_clip_loader, self.feature_adapter_params, ops_counter, context=True)
         self.context_features = self._pool_features(context_features, ops_counter)
-        self.classifier.configure(self.context_features, context_labels, ops_counter)
+        self.classifier.configure(self.context_features, context_labels, ops_counter, object_list=object_list)
 
-    def personalise_with_lite(self, context_clips, context_labels):
+    def personalise_with_lite(self, context_clips, context_labels, object_list=None):
         """
         Function that learns a new task by performning a forward pass of the task's context set with LITE. Namely a random subset of the context set (self.num_lite_samples) is processed with back-propagation enabled, while the remainder is processed with back-propagation disabled.
         :param context_clips: (np.ndarray or torch.Tensor) Context clips (either as paths or tensors), each composed of self.clip_length contiguous frames.
@@ -455,7 +455,7 @@ class SingleStepFewShotRecogniser(FewShotRecogniser):
         task_embedding = self._get_task_embedding_with_lite(context_clip_loader, shuffled_idxs)
         self.feature_adapter_params = self._get_feature_adapter_params(task_embedding)
         self.context_features = self._get_pooled_features_with_lite(context_clip_loader, shuffled_idxs)
-        self.classifier.configure(self.context_features, context_labels[shuffled_idxs])
+        self.classifier.configure(self.context_features, context_labels[shuffled_idxs], object_list=object_list)
 
     def _cache_context_outputs(self, context_clips):
         """
@@ -542,7 +542,7 @@ class FullRecogniser(FewShotRecogniser):
 
         self.num_grad_steps = num_grad_steps # Or epochs
 
-    def personalise(self, context_clips, context_clip_labels, learning_args, ops_counter=None):
+    def personalise(self, context_clips, context_clip_labels, learning_args, ops_counter=None, object_list=None):
         """
         Function that learns a new task by taking a fixed number of gradient steps on the task's context set. For each task, a new linear classification layer is added (and FiLM layers if self.adapt_features == True).
         :param context_clips: (np.ndarray or torch.Tensor) Context clips (either as paths or tensors), each composed of self.clip_length contiguous frames.
@@ -565,7 +565,7 @@ class FullRecogniser(FewShotRecogniser):
         features = self._get_features_in_batches(get_clip_loader(context_clips, self.batch_size), self.feature_adapter_params, ops_counter, context=True)
         features = self._pool_features(features, ops_counter)
         features = features.detach()
-        self.classifier.configure(features, context_clip_labels, ops_counter)
+        self.classifier.configure(features, context_clip_labels, ops_counter, object_list=None)
         for _ in range(self.num_grad_steps):
             for batch_context_clips, batch_context_labels in context_clip_loader:
                 batch_context_clips = batch_context_clips.to(self.device)
@@ -615,7 +615,7 @@ class FullRecogniser(FewShotRecogniser):
         features = self._pool_features(features, ops_counter)
         return self.classifier.predict(features, ops_counter)
 
-    def personalise_with_lite(self, context_clips, context_labels):
+    def personalise_with_lite(self, context_clips, context_labels, object_list=None):
         NotImplementedError
 
     def configure_classifier(self, num_classes, init_zeros=False):
