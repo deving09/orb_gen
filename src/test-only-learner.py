@@ -80,7 +80,7 @@ class Learner:
         self.loss = cross_entropy
         self.train_task_fn = self.train_task_in_batches if self.args.with_lite else self.train_task
 
-        self.init_trainer()
+        #self.init_trainer()
 
 
     def init_trainer(self):
@@ -132,21 +132,22 @@ class Learner:
         self.test_queue = dataloader.get_test_queue()
         
     def init_model(self):
-        """
-        model = MultiStepFewShotRecogniser(
+        model = FullRecogniser(
                     self.args.pretrained_extractor_path, self.args.feature_extractor, self.args.batch_normalisation,
                     self.args.adapt_features, self.args.classifier, self.args.clip_length, self.args.batch_size,
                     self.args.learn_extractor, self.args.feature_adaptation_method, self.args.use_two_gpus, self.args.num_grad_steps
                 )
+        
         model._register_extra_parameters()
         model._set_device(self.device)
-        model._send_to_device()
-
-        
-
+        model._send_to_device() 
         return model
-        """
-        pass
+
+    def init_task_model(self):
+        model = self.init_model()
+        model.load_state_dict(self.model.state_dict(), strict=False)
+        self.zero_grads(model)
+        return model
 
 
     def zero_grads(self, model):
@@ -171,7 +172,9 @@ class Learner:
 
     def run(self):
 
-        self.test(self.args.model_path)
+        torch.save(self.model.state_dict(), self.checkpoint_path_final)
+
+        self.test(self.args.checkpoint_path_final)
         pass
 
     def train_task(self, task_dict):
@@ -200,17 +203,20 @@ class Learner:
 
 
             # Initialize Current Model
-            model = copy.deepcopy(self.model)
-            model = model.to(self.device)
+            model = self.init_task_model()
+            model.set_test_mode(True)
+            
+            #model = copy.deepcopy(self.model)
+            #model = model.to(self.device)
 
             # take a few grad steps using context clips
             t1 = time.time()
             learning_args=(self.args.learning_rate, self.loss, 'sgd', 0.1)
             
             # Train 
-            model = self.trainer.run(model, context_clips, context_labels, learning_args, ops_counter=self.ops_counter)
+            #model = self.trainer.run(model, context_clips, context_labels, learning_args, ops_counter=self.ops_counter)
             
-            #inner_loop_model.personalise(context_clips, context_labels, learning_args, ops_counter=self.ops_counter)
+            model.personalise(context_clips, context_labels, learning_args, ops_counter=self.ops_counter, object_list=object_list)
             self.ops_counter.log_time(time.time() - t1)
             # add task's ops to self.ops_counter
             self.ops_counter.task_complete()
