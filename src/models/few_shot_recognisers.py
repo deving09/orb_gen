@@ -567,7 +567,7 @@ class FullRecogniser(FewShotRecogniser):
         features = self._get_features_in_batches(get_clip_loader(context_clips, self.batch_size), self.feature_adapter_params, ops_counter, context=True)
         features = self._pool_features(features, ops_counter)
         features = features.detach()
-        self.classifier.configure(features, context_clip_labels, ops_counter, object_list=None)
+        self.classifier.configure(features, context_clip_labels, ops_counter, object_list=object_list)
         for _ in range(self.num_grad_steps):
             for batch_context_clips, batch_context_labels in context_clip_loader:
                 batch_context_clips = batch_context_clips.to(self.device)

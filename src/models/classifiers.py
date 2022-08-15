@@ -228,9 +228,10 @@ class CLIPLinearClassifier(nn.Module):
         """
 
         text_inputs = torch.cat([clip.tokenize(f"a photo of a {c}") for c in object_list]).to(self.device)
-        text_features = self.model.encode_text(text_inputs)
+        text_features = self.clip_model.encode_text(text_inputs)
         text_features /= text_features.norm(dim=1, keepdim=True)
         
+        n_cls = len(object_list)
         self.linear = nn.Linear(self.in_size, n_cls, bias=True) 
         
         nn.init.kaiming_uniform_(self.linear.weight, mode="fan_out")
