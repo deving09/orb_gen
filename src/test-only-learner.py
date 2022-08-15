@@ -174,7 +174,7 @@ class Learner:
 
         torch.save(self.model.state_dict(), self.checkpoint_path_final)
 
-        self.test(self.args.checkpoint_path_final)
+        self.test(self.checkpoint_path_final)
         pass
 
     def train_task(self, task_dict):
