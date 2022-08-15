@@ -35,6 +35,7 @@ from collections import OrderedDict
 
 from models.mlps import DenseResidualBlock
 
+import clip
 
 
 

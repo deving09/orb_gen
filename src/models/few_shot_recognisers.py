@@ -38,7 +38,7 @@ from feature_adapters import FilmAdapter, NullAdapter
 from models.poolers import MeanPooler
 from models.normalisation_layers import TaskNorm
 from models.set_encoder import SetEncoder, NullSetEncoder
-from models.classifiers import LinearClassifier, VersaClassifier, PrototypicalClassifier, MahalanobisClassifier
+from models.classifiers import CLIPLinearClassifier, LinearClassifier, VersaClassifier, PrototypicalClassifier, MahalanobisClassifier
 from utils.optim import init_optimizer
 from utils.data import get_clip_loader
 
@@ -100,6 +100,8 @@ class FewShotRecogniser(nn.Module):
             self.classifier = PrototypicalClassifier()
         elif classifier == 'mahalanobis':
             self.classifier = MahalanobisClassifier()
+        elif classifier == "clip":
+            self.classifier = CLIPLinearClassifier(self.feature_extractor.output_size, self.feature_extractor.model)
 
         # configure frame pooler
         self.frame_pooler = MeanPooler(T=self.clip_length)
