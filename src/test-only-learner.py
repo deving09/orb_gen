@@ -144,11 +144,11 @@ class Learner:
         return model
 
     def init_task_model(self):
-        return self.model
-        #model = self.init_model()
-        #model.load_state_dict(self.model.state_dict(), strict=False)
-        #self.zero_grads(model)
-        #return model
+        #return self.model
+        model = self.init_model()
+        model.load_state_dict(self.model.state_dict(), strict=False)
+        self.zero_grads(model)
+        return model
 
 
     def zero_grads(self, model):
