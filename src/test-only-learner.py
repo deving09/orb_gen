@@ -195,9 +195,12 @@ class Learner:
         
         # loop through test tasks (num_test_users * num_test_tasks_per_user)
         num_test_tasks = self.test_queue.num_users * self.args.test_tasks_per_user
+        print(self.args.test_tasks_per_user)
         for step, task_dict in enumerate(self.test_queue.get_tasks()):
             context_clips, context_paths, context_labels, target_frames_by_video, target_paths_by_video, target_labels_by_video, object_list = unpack_task(task_dict, self.device, context_to_device=False, preload_clips=self.args.preload_clips)
-            
+           
+            print(object_list)
+            #print(context_paths)
             # if this is a user's first task, cache their target videos (as they remain constant for all their tasks - ie. num_test_tasks_per_user)
             if step % self.args.test_tasks_per_user == 0:
                 cached_target_frames_by_video, cached_target_paths_by_video, cached_target_labels_by_video = target_frames_by_video, target_paths_by_video, target_labels_by_video

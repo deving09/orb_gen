@@ -21,7 +21,11 @@ def init_optimizer(model, lr, optimizer_type='adam', extractor_scale_factor=1.0,
                             ], lr=lr)
     else:
         feature_extractor_params = list(map(id, model.feature_extractor.parameters()))
-        base_params = filter(lambda p: id(p) not in feature_extractor_params, model.parameters())
+        base_params = list(filter(lambda p: id(p) not in feature_extractor_params, model.parameters()))
+        print(base_params)
+        #print(feature_extractor_params)
+        print(len(base_params))
+        #print(len(feature_extractor_params))
         optimizer_fn = optimizers[optimizer_type]
         optimizer = optimizer_fn([
                             {'params': base_params },

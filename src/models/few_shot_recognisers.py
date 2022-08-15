@@ -333,7 +333,7 @@ class MultiStepFewShotRecogniser(FewShotRecogniser):
         num_classes = len(torch.unique(context_clip_labels))
         #self.configure_classifier(num_classes, init_zeros=True)
         self.configure_feature_adapter()
-        inner_loop_optimizer = init_optimizer(self, lr, optimizer_type, extractor_scale_factor)
+        #inner_loop_optimizer = init_optimizer(self, lr, optimizer_type, extractor_scale_factor)
         
 
         context_clip_loader = get_clip_loader((context_clips, context_clip_labels), self.batch_size, with_labels=True)
@@ -344,6 +344,9 @@ class MultiStepFewShotRecogniser(FewShotRecogniser):
         features = self._pool_features(features, ops_counter)
         features = features.detach()
         self.classifier.configure(features, context_clip_labels, ops_counter, object_list=object_list)
+        
+        # Think through consequences of this change if model params can be updated on features
+        inner_loop_optimizer = init_optimizer(self, lr, optimizer_type, extractor_scale_factor)
         for _ in range(self.num_grad_steps):
             for batch_context_clips, batch_context_labels in context_clip_loader:
                 batch_context_clips = batch_context_clips.to(self.device)
@@ -557,7 +560,7 @@ class FullRecogniser(FewShotRecogniser):
         num_classes = len(torch.unique(context_clip_labels))
         #self.configure_classifier(num_classes, init_zeros=True)
         self.configure_feature_adapter()
-        inner_loop_optimizer = init_optimizer(self, lr, optimizer_type, extractor_scale_factor)
+        #inner_loop_optimizer = init_optimizer(self, lr, optimizer_type, extractor_scale_factor)
         
 
         context_clip_loader = get_clip_loader((context_clips, context_clip_labels), self.batch_size, with_labels=True)
@@ -568,6 +571,9 @@ class FullRecogniser(FewShotRecogniser):
         features = self._pool_features(features, ops_counter)
         features = features.detach()
         self.classifier.configure(features, context_clip_labels, ops_counter, object_list=object_list)
+        
+
+        inner_loop_optimizer = init_optimizer(self, lr, optimizer_type, extractor_scale_factor)
         for _ in range(self.num_grad_steps):
             for batch_context_clips, batch_context_labels in context_clip_loader:
                 batch_context_clips = batch_context_clips.to(self.device)
@@ -576,14 +582,17 @@ class FullRecogniser(FewShotRecogniser):
                 t1 = time.time()
                 batch_context_loss = loss_fn(batch_context_logits, batch_context_labels)
                 batch_context_loss.backward()
+                
+                inner_loop_optimizer.step()
+                inner_loop_optimizer.zero_grad()
 
                 if ops_counter:
                     torch.cuda.synchronize()
                     ops_counter.log_time(time.time() - t1)
 
             t1 = time.time()
-            inner_loop_optimizer.step()
-            inner_loop_optimizer.zero_grad()
+            #inner_loop_optimizer.step()
+            #inner_loop_optimizer.zero_grad()
             if ops_counter:
                 torch.cuda.synchronize()
                 ops_counter.log_time(time.time() - t1)

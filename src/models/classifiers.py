@@ -214,7 +214,7 @@ class CLIPLinearClassifier(nn.Module):
         """
         super().__init__()
         self.in_size = in_size
-        self.clip_model = clip_model
+        self._clip_model = clip_model
         pass
 
     def _set_device(self, device):
@@ -228,7 +228,7 @@ class CLIPLinearClassifier(nn.Module):
         """
 
         text_inputs = torch.cat([clip.tokenize(f"a photo of a {c}") for c in object_list]).to(self.device)
-        text_features = self.clip_model.encode_text(text_inputs)
+        text_features = self._clip_model.encode_text(text_inputs)
         text_features /= text_features.norm(dim=1, keepdim=True)
         
         n_cls = len(object_list)
