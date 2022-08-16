@@ -300,7 +300,8 @@ class Learner:
 
         #self.init_model()
         #self.model.load_state_dict(torch.load(path, map_location=self.map_location)) 
-        self.model.set_test_mode(True)
+        #self.model.set_test_mode(True)
+        
         self.ops_counter.set_base_params(self.model)
 
         with torch.no_grad():

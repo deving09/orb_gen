@@ -229,7 +229,7 @@ class CLIPLinearClassifier(nn.Module):
 
         text_inputs = torch.cat([clip.tokenize(f"a photo of a {c}") for c in object_list]).to(self.device)
         text_features = self._clip_model.encode_text(text_inputs)
-        text_features /= text_features.norm(dim=1, keepdim=True)
+        text_features /= text_features.norm(dim=-1, keepdim=True)
         
         n_cls = len(object_list)
         self.linear = nn.Linear(self.in_size, n_cls, bias=True) 
@@ -239,6 +239,7 @@ class CLIPLinearClassifier(nn.Module):
         self.linear.weight.data = text_features #context_features.dtype)
         #self.linear.bias.data = self.linear.bias.type(context_features.dtype)
         self.linear.to(self.device)
+        self._clip_model.to(self.device)
 
 
     def predict(self, features, ops_counter=None):
@@ -248,6 +249,8 @@ class CLIPLinearClassifier(nn.Module):
         :return: (torch.Tensor) Logits over object classes for each feature.
         """
         t1 = time.time()
+
+        features /= features.norm(dim=-1, keepdim=True)
 
         out = self.linear(features)
         if ops_counter:
