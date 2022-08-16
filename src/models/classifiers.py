@@ -335,8 +335,9 @@ class TextEncoder(nn.Module):
 
     def forward(self, prompts, tokenized_prompts):
         x = prompts + self.positional_embedding.type(self.dtype)
+
         x = x.permute(1, 0, 2) # NLD -> LND
-        x = self.tranformer(x)
+        x = self.transformer(x)
         x = x.permute(1, 0, 2) # LND -> NLD
         x = self.ln_final(x).type(self.dtype)
 
@@ -347,7 +348,7 @@ class TextEncoder(nn.Module):
 
 class PromptLearner(nn.Module):
     
-    def __init__(self, prompt_meth, classnames, clip_model):
+    def __init__(self, prompt_meth, classnames, clip_model, device):
         super().__init__()
         n_cls = len(classnames)
         n_ctx = 16 # Number of Context Tokens cfg.TRAINER.N_CTX
@@ -391,6 +392,7 @@ class PromptLearner(nn.Module):
         prompts = [prompt_prefix + " " + name + "." for name in classnames]
 
         tokenized_prompts = torch.cat([clip.clip.tokenize(p) for p in prompts]) #(n_cls, n_tkn)
+        tokenized_prompts = tokenized_prompts.to(device)
 
         with torch.no_grad():
             embedding = clip_model.token_embedding(tokenized_prompts).type(dtype)
@@ -410,7 +412,7 @@ class PromptLearner(nn.Module):
         if label is not None:
             prefix = prefix[label]
             suffix = suffix[label]
-
+        
         prompts = torch.cat(
             [
                 prefix, # (dim0, 1, dim)
@@ -427,6 +429,8 @@ class PromptLearner(nn.Module):
         suffix = self.token_suffix
         
         ctx = self.ctx                             # (n_ctx, ctx_dim)
+        if ctx.dim() == 2:
+            ctx = ctx.unsqueeze(0).expand(self.n_cls, -1, -1)
 
         if self.prompt_meth == "cocoop":           #True: #cfg.CoCoOp
             bias = self.meta_net(im_features)      # (batch, ctx_dim)
@@ -478,7 +482,7 @@ class CLIPPromptClassifier(HeadClassifier):
         Function that creates and initialises a linear classification layer based on learned
         prompts
         """
-        self.prompt_learner = PromptLearner(self.meth, object_list, self._clip_model)
+        self.prompt_learner = PromptLearner(self.meth, object_list, self._clip_model, self.device)
         self.tokenized_prompts = self.prompt_learner.tokenized_prompts
 
         self.prompt_learner.to(self.device)
@@ -497,17 +501,26 @@ class CLIPPromptClassifier(HeadClassifier):
 
         prompts = self.prompt_learner(features)
         
-        logits = []
-        for pts_i, imf_i in zip(prompts, features):
-            text_features = self.text_encoder(pts_i, tokenized_prompts)
+        if self.meth == "cocoop":
+            logits = []
+            for pts_i, imf_i in zip(prompts, features):
+                text_features = self.text_encoder(pts_i, tokenized_prompts)
+                text_features = text_features / text_features.norm(dim=1, keepdim=True)
+
+                l_i = logit_scale * imf_i @ text_features.t()
+                logits.append(l_i)
+
+            logits = torch.stack(logits)
+            
+            return logits
+        else:
+            text_features = self.text_encoder(prompts, tokenized_prompts)
             text_features = text_features / text_features.norm(dim=1, keepdim=True)
 
-            l_i = logit_scale * imf_i @ text_features.t()
-            logits.append(l_i)
+            logits = logit_scale * features @ text_features.t()
+            return logits
 
-        logits = torch.stack(logits)
-        
-        return logits
+
         
 
     def reset(self):
