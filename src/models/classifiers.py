@@ -321,7 +321,7 @@ class LinearClassifier(HeadClassifier):
 
 
 
-class TextEncorder(nn.Module):
+class TextEncoder(nn.Module):
     def __init__(self, clip_model):
         super().__init__()
         self.transformer = clip_model.transformer
