@@ -437,8 +437,11 @@ class PromptLearner(nn.Module):
 
         if self.prompt_meth == "cocoop":           #True: #cfg.CoCoOp
             bias = self.meta_net(im_features)      # (batch, ctx_dim)
+            print(bias.shape)
             bias = bias.unsqueeze(1)               # (batch, 1, ctx_dim)
+            print(bias.shape)
             ctx = ctx.unsqueeze(0)                 # (1, n_ctx, ctx_dim)
+            print(ctx.shape)
             ctx_shifted = ctx + bias               # (batch, n_ctx, ctx_dim)
 
             prompts = []
