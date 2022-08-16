@@ -587,16 +587,16 @@ class FullRecogniser(FewShotRecogniser):
                 batch_context_loss = loss_fn(batch_context_logits, batch_context_labels)
                 batch_context_loss.backward()
                 
-                inner_loop_optimizer.step()
-                inner_loop_optimizer.zero_grad()
+                #inner_loop_optimizer.step()
+                #inner_loop_optimizer.zero_grad()
 
                 if ops_counter:
                     torch.cuda.synchronize()
                     ops_counter.log_time(time.time() - t1)
 
             t1 = time.time()
-            #inner_loop_optimizer.step()
-            #inner_loop_optimizer.zero_grad()
+            inner_loop_optimizer.step()
+            inner_loop_optimizer.zero_grad()
             if ops_counter:
                 torch.cuda.synchronize()
                 ops_counter.log_time(time.time() - t1)
