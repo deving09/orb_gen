@@ -38,7 +38,7 @@ from feature_adapters import FilmAdapter, NullAdapter
 from models.poolers import MeanPooler
 from models.normalisation_layers import TaskNorm
 from models.set_encoder import SetEncoder, NullSetEncoder
-from models.classifiers import CLIPLinearClassifier, LinearClassifier, VersaClassifier, PrototypicalClassifier, MahalanobisClassifier
+from models.classifiers import CLIPLinearClassifier, LinearClassifier, VersaClassifier, PrototypicalClassifier, MahalanobisClassifier, CLIPPromptClassifier
 from utils.optim import init_optimizer
 from utils.data import get_clip_loader
 
