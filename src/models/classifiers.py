@@ -35,9 +35,12 @@ from collections import OrderedDict
 
 from models.mlps import DenseResidualBlock
 
+
 import clip
+from clip.simple_tokenizer import SimpleTokenizer as _Tokenizer
 
 
+_tokenizer = _Tokenizer()
 
 
 
@@ -387,7 +390,7 @@ class PromptLearner(nn.Module):
         name_lens = [len(_tokenizer.encode(name)) for name in classnames]
         prompts = [prompt_prefix + " " + name + "." for name in classnames]
 
-        tokenized_prompts = torch.cat([clip.tokenize(p) for p in prompts]) #(n_cls, n_tkn)
+        tokenized_prompts = torch.cat([clip.clip.tokenize(p) for p in prompts]) #(n_cls, n_tkn)
 
         with torch.no_grad():
             embedding = clip_model.token_embedding(tokenized_prompts).type(dtype)
@@ -492,7 +495,7 @@ class CLIPPromptClassifier(HeadClassifier):
         tokenized_prompts = self.tokenized_prompts
         logit_scale = self.logit_scale.exp()
 
-        prompts = self.prompt_leaner(features)
+        prompts = self.prompt_learner(features)
         
         logits = []
         for pts_i, imf_i in zip(prompts, features):
