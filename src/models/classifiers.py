@@ -432,8 +432,6 @@ class PromptLearner(nn.Module):
         suffix = self.token_suffix
         
         ctx = self.ctx                             # (n_ctx, ctx_dim)
-        if ctx.dim() == 2:
-            ctx = ctx.unsqueeze(0).expand(self.n_cls, -1, -1)
 
         if self.prompt_meth == "cocoop":           #True: #cfg.CoCoOp
             bias = self.meta_net(im_features)      # (batch, ctx_dim)
@@ -454,6 +452,9 @@ class PromptLearner(nn.Module):
             return prompts
         else:
             #prompts = []
+            if ctx.dim() == 2:
+                ctx = ctx.unsqueeze(0).expand(self.n_cls, -1, -1)
+            
             prompts = self.construct_prompts(ctx, prefix, suffix)
             return prompts
 
