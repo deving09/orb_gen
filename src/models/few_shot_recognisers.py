@@ -102,6 +102,10 @@ class FewShotRecogniser(nn.Module):
             self.classifier = MahalanobisClassifier()
         elif classifier == "clip":
             self.classifier = CLIPLinearClassifier(self.feature_extractor.output_size, self.feature_extractor.model)
+        elif classifier == "coop":
+            self.classifier = CLIPPromptClassifier(classifier, self.feature_extractor.output_size, self.feature_extractor.model)
+        elif classifier == "cocoop":
+            self.classifier = CLIPPromptClassifier(classifier, self.feature_extractor.output_size, self.feature_extractor.model)
 
         # configure frame pooler
         self.frame_pooler = MeanPooler(T=self.clip_length)
