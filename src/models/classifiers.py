@@ -231,6 +231,7 @@ class CLIPLinearClassifier(nn.Module):
         """
 
         text_inputs = torch.cat([clip.tokenize(f"a photo of a {c}") for c in object_list]).to(self.device)
+        self._clip_model.to(self.device)
         text_features = self._clip_model.encode_text(text_inputs)
         text_features /= text_features.norm(dim=-1, keepdim=True)
         
@@ -355,7 +356,9 @@ class PromptLearner(nn.Module):
         ctx_init = False # "a photo of a"   #cfg.TRAINER.CTX_INIT
         dtype = clip_model.dtype
         ctx_dim = clip_model.ln_final.weight.shape[0]
+        vis_dim = clip_model.visual.output_dim
 
+        clip_model.to(device)
         self.prompt_meth = prompt_meth
         #clip_imsize = clip_model.visual.input_resolution
 
@@ -373,6 +376,7 @@ class PromptLearner(nn.Module):
             # Random Initialization
             ctx_vectors = torch.empty(n_ctx, ctx_dim, dtype=dtype)
             nn.init.normal_(ctx_vectors, std=0.02)
+            ctx_vectors = ctx_vectors.to(device)
             prompt_prefix = " ".join(["X"] * n_ctx)
 
         print(f'Initial context: "{prompt_prefix}"')
