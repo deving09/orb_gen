@@ -349,7 +349,7 @@ class TextEncoder(nn.Module):
 
 class PromptLearner(nn.Module):
     
-    def __init__(self, prompt_meth, classnames, clip_model): #, device):
+    def __init__(self, prompt_meth, classnames, clip_model, device):
         super().__init__()
         n_cls = len(classnames)
         n_ctx = 16 # Number of Context Tokens cfg.TRAINER.N_CTX
@@ -395,7 +395,7 @@ class PromptLearner(nn.Module):
         prompts = [prompt_prefix + " " + name + "." for name in classnames]
 
         tokenized_prompts = torch.cat([clip.clip.tokenize(p) for p in prompts]) #(n_cls, n_tkn)
-        #tokenized_prompts = tokenized_prompts.to(device)
+        tokenized_prompts = tokenized_prompts.to(device)
 
         with torch.no_grad():
             embedding = clip_model.token_embedding(tokenized_prompts).type(dtype)
@@ -486,7 +486,7 @@ class CLIPPromptClassifier(HeadClassifier):
         prompts
         """
         self._clip_model.to(self.device)
-        self.prompt_learner = PromptLearner(self.meth, object_list, self._clip_model) #, self.device)
+        self.prompt_learner = PromptLearner(self.meth, object_list, self._clip_model, self.device)
         self.tokenized_prompts = self.prompt_learner.tokenized_prompts
 
         self.prompt_learner.to(self.device)
