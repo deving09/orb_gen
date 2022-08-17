@@ -478,6 +478,7 @@ class CLIPPromptClassifier(HeadClassifier):
 
 
     def _set_device(self, device):
+        self._clip_model.to(device)
         self.device = device
 
 
