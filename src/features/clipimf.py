@@ -206,6 +206,7 @@ class CLIPimf(nn.Module):
         self.model = model
         self.convert_to_fp32()
         self.preprocess = preprocess
+        self.model.to(device)
         #self.model, self.preprocess = clip.load('ViT-B/32', self.device)
     
     def _flatten(self, x):
