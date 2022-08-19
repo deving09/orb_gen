@@ -576,6 +576,8 @@ class FullRecogniser(FewShotRecogniser):
             features = self._pool_features(features, ops_counter)
         features = features.detach()
         self.classifier.configure(features, context_clip_labels, ops_counter, object_list=object_list)
+
+        self._send_to_device()
         
 
         inner_loop_optimizer = init_optimizer(self, lr, optimizer_type, extractor_scale_factor)
