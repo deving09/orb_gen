@@ -487,7 +487,7 @@ class CLIPPromptClassifier(HeadClassifier):
         Function that creates and initialises a linear classification layer based on learned
         prompts
         """
-        #self._clip_model.to(self.device)
+        self._clip_model.to(self.device)
         self.prompt_learner = PromptLearner(self.meth, object_list, self._clip_model, self.device)
         self.tokenized_prompts = self.prompt_learner.tokenized_prompts
 
