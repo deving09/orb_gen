@@ -32,7 +32,7 @@ storage:
        #local_dir: ../ORB_DATA
 
 jobs:
-    - name: clip_coop_ft_only
+    - name: clip_coop_only
       sku: NDv2g1:G2
       #sku: G8
       command:
