@@ -1,0 +1,28 @@
+description: CLIP random linear for orbit repo
+
+target:
+        service: amlk8s
+        name: itplabrr1cl1 
+        vc: resrchvc
+
+environment:
+        image: orb_gen:latest
+        registry: cvgroup.azurecr.io
+        username: cvgroup 
+
+code: 
+    local_dir: $CONFIG_DIR/src
+
+storage:
+    data:
+       storage_account_name: cvgroup
+       container_name: datasets
+       mount_dir: /mnt/data
+
+jobs:
+    - name: runner_test
+      sku: NDv2g1:G4
+      #sku: G8
+      command:
+         #- python3 CLIP/setup.py develop
+         - MKL_THREADING_LAYER=GNU python runner.py

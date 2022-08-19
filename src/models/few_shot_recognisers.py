@@ -571,8 +571,9 @@ class FullRecogniser(FewShotRecogniser):
         
         task_embedding = None # multi-step methods do not use set encoder
         self.feature_adapter_params = self._get_feature_adapter_params(task_embedding, ops_counter)
-        features = self._get_features_in_batches(get_clip_loader(context_clips, self.batch_size), self.feature_adapter_params, ops_counter, context=True)
-        features = self._pool_features(features, ops_counter)
+        with torch.no_grad():
+            features = self._get_features_in_batches(get_clip_loader(context_clips, self.batch_size), self.feature_adapter_params, ops_counter, context=True)
+            features = self._pool_features(features, ops_counter)
         features = features.detach()
         self.classifier.configure(features, context_clip_labels, ops_counter, object_list=object_list)
         

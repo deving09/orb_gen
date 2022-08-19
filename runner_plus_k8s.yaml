@@ -1,0 +1,34 @@
+description: For multi-gpu experimentation
+
+target:
+        service: amlk8s
+        name: itplabrr1cl1 
+        vc: resrchvc
+
+environment:
+        image: orb_gen:latest
+        registry: cvgroup.azurecr.io
+        username: cvgroup 
+
+code: 
+    local_dir: $CONFIG_DIR/src
+
+storage:
+    data:
+       storage_account_name: cvgroup
+       container_name: datasets
+       mount_dir: /mnt/data
+
+jobs:
+    - name: warm_runner_last
+      sku: G4
+      #sku: G8
+      command:
+         #- python3 CLIP/setup.py develop
+         - MKL_THREADING_LAYER=GNU python test-only-learner.py --data_path /mnt/data/ORB_DATA/orbit_benchmark_224 --frame_size 224
+           --feature_extractor clip_vitb_32 --pretrained_extractor_path features/pretrained/resnet18_imagenet_84.pth
+           --classifier linear
+           --context_video_type clean --target_video_type clutter  -lr 0.1 --inner_learning_rate 0.1 --num_grad_steps 100
+           --train_object_cap 10 --with_train_shot_caps --with_lite --batch_size 32 --num_workers 16
+           --test_tasks_per_user 1
+         - MKL_THREADING_LAYER=GNU python runner.py

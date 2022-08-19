@@ -1,4 +1,4 @@
-description: CLIP Context Optimization for orbit repo
+description: CLIP Conditional Context Optimization for orbit repo
 
 target:
         service: amlk8s
@@ -32,14 +32,14 @@ storage:
        #local_dir: ../ORB_DATA
 
 jobs:
-    - name: clip_coop_ft_only
+    - name: clip_cocoop_ft_only
       sku: NDv2g1:G2
       #sku: G8
       command:
          #- python3 CLIP/setup.py develop
          - MKL_THREADING_LAYER=GNU python test-only-learner.py --data_path /mnt/data/ORB_DATA/orbit_benchmark_224 --frame_size 224
            --feature_extractor clip_vitb_32 --pretrained_extractor_path features/pretrained/resnet18_imagenet_84.pth
-           --classifier coop
-           --context_video_type clean --target_video_type clutter  -lr 0.01 --inner_learning_rate 0.01 --num_grad_steps 200
+           --classifier cocoop --learn_extractor
+           --context_video_type clean --target_video_type clutter  -lr 0.001 --inner_learning_rate 0.001 --num_grad_steps 200
            --train_object_cap 10 --with_train_shot_caps --with_lite --batch_size 16 --num_workers 16
            --test_tasks_per_user 1
