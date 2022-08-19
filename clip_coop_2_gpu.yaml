@@ -1,0 +1,45 @@
+description: CLIP Context Optimization for orbit repo
+
+target:
+        service: amlk8s
+        name: itplabrr1cl1 
+        vc: resrchvc
+
+environment:
+        image: orb_gen:latest
+        registry: cvgroup.azurecr.io
+        username: cvgroup 
+        #image: pytorch/pytorch:1.8.0-cuda11.1-cudnn8-devel 
+        #registry: docker.io
+        #setup:
+        #- pip install ftfy regex
+        #- pip install git+https://github.com/openai/CLIP.git
+        #- python CLIP/setup.py develop
+        #- sudo apt-get install git -y 
+
+code: 
+    local_dir: $CONFIG_DIR/src
+
+storage:
+    data:
+       #storage_account_name: dguill
+       #container_name: data
+       storage_account_name: cvgroup
+       container_name: datasets
+       mount_dir: /mnt/data
+       #remote_dir: ORB_DATA
+       #storage_id: dguill
+       #local_dir: ../ORB_DATA
+
+jobs:
+    - name: clip_coop_ft_only
+      sku: NDv2g1:G2
+      #sku: G8
+      command:
+         #- python3 CLIP/setup.py develop
+         - MKL_THREADING_LAYER=GNU python test-only-learner.py --data_path /mnt/data/ORB_DATA/orbit_benchmark_224 --frame_size 224
+           --feature_extractor clip_vitb_32 --pretrained_extractor_path features/pretrained/resnet18_imagenet_84.pth
+           --classifier coop --use_two_gpus
+           --context_video_type clean --target_video_type clutter  -lr 0.01 --inner_learning_rate 0.01 --num_grad_steps 200
+           --train_object_cap 10 --with_train_shot_caps --with_lite --batch_size 16 --num_workers 16
+           --test_tasks_per_user 1
