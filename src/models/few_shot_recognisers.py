@@ -651,3 +651,124 @@ class FullRecogniser(FewShotRecogniser):
         if self.adapt_features and self.feature_adaptation_method == 'learn':
             self.feature_adapter._init_layers()
             self.feature_adapter.to(self.device)
+
+
+
+class FullRecogniser2(FewShotRecogniser):
+    """
+    Few-shot classification model that is personalised in multiple forward-backward steps (e.g. MAML, FineTuner).
+    """
+    def __init__(self, pretrained_extractor_path: str, feature_extractor: str, batch_normalisation: str,
+        adapt_features: bool, classifier: str, clip_length: int, batch_size: int, learn_extractor: bool,
+        feature_adaptation_method: str, use_two_gpus: bool, num_grad_steps: int):
+        """
+        Creates instance of FullShotRecogniser.
+        """
+        FewShotRecogniser.__init__(self, pretrained_extractor_path, feature_extractor, batch_normalisation,
+            adapt_features, classifier, clip_length, batch_size, learn_extractor,feature_adaptation_method, use_two_gpus)
+
+        self.num_grad_steps = num_grad_steps # Or epochs
+
+    def personalise(self, context_clips, context_clip_labels, learning_args, ops_counter=None, object_list=None):
+        """
+        Function that learns a new task by taking a fixed number of gradient steps on the task's context set. For each task, a new linear classification layer is added (and FiLM layers if self.adapt_features == True).
+        :param context_clips: (np.ndarray or torch.Tensor) Context clips (either as paths or tensors), each composed of self.clip_length contiguous frames.
+        :param context_clip_labels: (torch.Tensor) Video-level labels for each context clip.
+        :param learning_args: (float, func, str, float) Learning hyper-parameters including learning rate, loss function, optimiser type and factor to scale the extractor's learning rate.
+        :param ops_counter: (utils.OpsCounter or None) Object that counts operations performed.
+        :return: Nothing.
+        """
+        lr, loss_fn, optimizer_type, extractor_scale_factor = learning_args
+        num_classes = len(torch.unique(context_clip_labels))
+        #self.configure_classifier(num_classes, init_zeros=True)
+        self.configure_feature_adapter()
+        #inner_loop_optimizer = init_optimizer(self, lr, optimizer_type, extractor_scale_factor)
+        
+
+        context_clip_loader = get_clip_loader((context_clips, context_clip_labels), self.batch_size, with_labels=True)
+        
+        task_embedding = None # multi-step methods do not use set encoder
+        self.feature_adapter_params = self._get_feature_adapter_params(task_embedding, ops_counter)
+        
+        with torch.no_grad():
+            features = self._get_features_in_batches(get_clip_loader(context_clips, self.batch_size), self.feature_adapter_params, ops_counter, context=True)
+            features = self._pool_features(features, ops_counter)
+
+        features = features.detach()
+        self.classifier.configure(features, context_clip_labels, ops_counter, object_list=object_list)
+        
+
+        inner_loop_optimizer = init_optimizer(self, lr, optimizer_type, extractor_scale_factor)
+        for _ in range(self.num_grad_steps):
+            for batch_context_clips, batch_context_labels in context_clip_loader:
+                batch_context_clips = batch_context_clips.to(self.device)
+                batch_context_labels = batch_context_labels.to(self.device)
+                batch_context_logits = self.predict_a_batch(batch_context_clips, ops_counter=ops_counter, context=True)
+                t1 = time.time()
+                batch_context_loss = loss_fn(batch_context_logits, batch_context_labels)
+                batch_context_loss.backward()
+                
+                inner_loop_optimizer.step()
+                inner_loop_optimizer.zero_grad()
+
+                if ops_counter:
+                    torch.cuda.synchronize()
+                    ops_counter.log_time(time.time() - t1)
+
+            t1 = time.time()
+            #inner_loop_optimizer.step()
+            #inner_loop_optimizer.zero_grad()
+            if ops_counter:
+                torch.cuda.synchronize()
+                ops_counter.log_time(time.time() - t1)
+
+    def predict(self, clips, ops_counter=None, context=False):
+        """
+        Function that processes target clips in batches to get logits over object classes for each clip.
+        :param clips: (np.ndarray or torch.Tensor) Clips (either as paths or tensors), each composed of self.clip_length contiguous frames.
+        :param ops_counter: (utils.OpsCounter or None) Object that counts operations performed.
+        :param context: (bool) True if a context set is being processed, otherwise False.
+        :return: (torch.Tensor) Logits over object classes for each clip in clips.
+        """
+        clip_loader = get_clip_loader(clips, self.batch_size)
+        task_embedding = None # multi-step methods do not use set encoder
+        self.feature_adapter_params = self._get_feature_adapter_params(task_embedding, ops_counter)
+        features = self._get_features_in_batches(clip_loader, self.feature_adapter_params, ops_counter, context=context)
+        features = self._pool_features(features, ops_counter)
+        return self.classifier.predict(features, ops_counter)
+
+    def predict_a_batch(self, clips, ops_counter=None, context=False):
+        """
+        Function that processes a batch of clips to get logits over object classes for each clip.
+        :param clips: (torch.Tensor) Tensor of clips, each composed of self.clip_length contiguous frames.
+        :param ops_counter: (utils.OpsCounter or None) Object that counts operations performed.
+        :param context: (bool) True if a context set is being processed, otherwise False.
+        :return: (torch.Tensor) Logits over object classes for each clip in clips.
+        """
+        task_embedding = None # multi-step methods do not use set encoder
+        self.feature_adapter_params = self._get_feature_adapter_params(task_embedding, ops_counter)
+        features = self._get_features(clips, self.feature_adapter_params, ops_counter, context=context)
+        features = self._pool_features(features, ops_counter)
+        return self.classifier.predict(features, ops_counter)
+
+    def personalise_with_lite(self, context_clips, context_labels, object_list=None):
+        NotImplementedError
+
+    def configure_classifier(self, num_classes, init_zeros=False):
+        """
+        Function that initialises and appends a linear classification layer to the model.
+        :param num_classes: (int) Number of classes in classification layer.
+        :init_zeros: (bool) If True, initialise classification layer with zeros, otherwise use Kaiming uniform.
+        :return: Nothing.
+        """
+        #self.classifier.configure(self.context_features, context_labels[shuffled_idxs])
+        self.classifier.configure(num_classes, self.device, init_zeros=init_zeros)
+
+    def configure_feature_adapter(self):
+        """
+        Function that initialises learnable FiLM layers if self.adapt_features == True.
+        :return: Nothing.
+        """
+        if self.adapt_features and self.feature_adaptation_method == 'learn':
+            self.feature_adapter._init_layers()
+            self.feature_adapter.to(self.device)
