@@ -42,6 +42,8 @@ from models.classifiers import CLIPLinearClassifier, LinearClassifier, VersaClas
 from utils.optim import init_optimizer
 from utils.data import get_clip_loader
 
+
+
 class FewShotRecogniser(nn.Module):
     """
     Generic few-shot classification model.
@@ -129,7 +131,7 @@ class FewShotRecogniser(nn.Module):
         :return: Nothing.
         """
         #self.feature_extractor.cuda(1)
-        self.feature_extractor = torch.nn.DataParallel(self.feature_extractor)
+        self.feature_extractor = nn.DataParallel(self.feature_extractor)
         self.feature_adapter.cuda(1)
         #device_id = 'cuda:' + str(1)
         #self.classifier._set_device(torch.device(device_id))
