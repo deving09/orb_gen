@@ -231,7 +231,7 @@ class CLIPLinearClassifier(nn.Module):
         """
 
         text_inputs = torch.cat([clip.tokenize(f"a photo of a {c}") for c in object_list]).to(self.device)
-        self._clip_model.to(self.device)
+        #self._clip_model.to(self.device)
         text_features = self._clip_model.encode_text(text_inputs)
         text_features /= text_features.norm(dim=-1, keepdim=True)
         
@@ -243,7 +243,7 @@ class CLIPLinearClassifier(nn.Module):
         self.linear.weight.data = text_features #context_features.dtype)
         #self.linear.bias.data = self.linear.bias.type(context_features.dtype)
         self.linear.to(self.device)
-        self._clip_model.to(self.device)
+        #self._clip_model.to(self.device)
 
 
     def predict(self, features, ops_counter=None):
@@ -488,7 +488,7 @@ class CLIPPromptClassifier(HeadClassifier):
 
 
     def _set_device(self, device):
-        self._clip_model.to(device)
+        #self._clip_model.to(device)
         self.device = device
         self.text_encoder._set_device(self.device)
         if self.prompt_learner:
@@ -500,7 +500,7 @@ class CLIPPromptClassifier(HeadClassifier):
         Function that creates and initialises a linear classification layer based on learned
         prompts
         """
-        self._clip_model.to(self.device)
+        #self._clip_model.to(self.device)
         self.prompt_learner = PromptLearner(self.meth, object_list, self._clip_model, self.device)
         self.tokenized_prompts = self.prompt_learner.tokenized_prompts
 
@@ -515,7 +515,7 @@ class CLIPPromptClassifier(HeadClassifier):
         """
         t1 = time.time()
 
-        self._set_device(features.get_device())
+        #self._set_device(features.get_device())
 
         #features = features.to(self.device)
 
