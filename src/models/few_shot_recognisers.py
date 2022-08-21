@@ -130,6 +130,8 @@ class FewShotRecogniser(nn.Module):
         """
         self.feature_extractor.cuda(1)
         self.feature_adapter.cuda(1)
+        device_id = 'cuda:' + str(1)
+        self.classifier._set_device(torch.device(device_id))
 
     def _get_features(self, clips, feature_adapter_params, ops_counter=None, context=False):
         """

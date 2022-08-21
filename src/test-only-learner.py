@@ -83,22 +83,6 @@ class Learner:
         #self.init_trainer()
 
 
-    def init_trainer(self):
-        if self.args.trainer == "linear_probe":
-            pass
-        elif self.args.trainer == "ft":
-            pass
-        elif self.args.trainer == "coop":
-            pass
-        elif self.args.trainer == "cocoop":
-            pass
-        elif self.args.trainer == "wise":
-            pass
-        else:
-            raise ValueError(f"Trainer not specified: {self.args.trainer}")
-
-        pass
-
     def init_dataset(self):
 
         dataset_info = {

@@ -346,6 +346,15 @@ class TextEncoder(nn.Module):
 
         return x
 
+    def _set_device(self, device):
+        print("Set Text Device: %s" % device)
+        self.device = device
+        self.transformer.to(device)
+        self.text_projection = self.text_projection.to(device)
+        self.positional_embedding = self.positional_embedding.to(device)
+        self.ln_final.to(device)
+        #pass
+
 
 class PromptLearner(nn.Module):
     
@@ -475,11 +484,15 @@ class CLIPPromptClassifier(HeadClassifier):
         self.text_encoder = TextEncoder(clip_model)
         self.logit_scale = clip_model.logit_scale
         self.dtype = clip_model.dtype
+        self.prompt_learner = None
 
 
     def _set_device(self, device):
         self._clip_model.to(device)
         self.device = device
+        self.text_encoder._set_device(self.device)
+        if self.prompt_learner:
+            self.prompt_learner.to(self.device)
 
 
     def configure(self, context_features, context_labels, ops_counter=None, object_list=None):
@@ -501,6 +514,10 @@ class CLIPPromptClassifier(HeadClassifier):
         :return: (torch.Tensor) Logits over object classes for each feature.
         """
         t1 = time.time()
+
+        self._set_device(features.get_device())
+
+        #features = features.to(self.device)
 
         tokenized_prompts = self.tokenized_prompts
         logit_scale = self.logit_scale.exp()
@@ -524,6 +541,9 @@ class CLIPPromptClassifier(HeadClassifier):
             text_features = text_features / text_features.norm(dim=1, keepdim=True)
 
             logits = logit_scale * features @ text_features.t()
+            #print(features.get_device())
+            #print(text_features.get_device())
+            #logits = features @ text_features.t()
             return logits
 
 
