@@ -20,7 +20,7 @@ storage:
        mount_dir: /mnt/data
 
 jobs:
-    - name: runner_last
+    - name: runner_fresh_try
       sku: G4
       #sku: G8
       command:

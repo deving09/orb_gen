@@ -153,7 +153,7 @@ class FewShotRecogniser(nn.Module):
         else:
             features = self.feature_extractor(clips, feature_adapter_params)
 
-        if ops_counter:
+        if False: #ops_counter:
             torch.cuda.synchronize()
             ops_counter.log_time(time.time() - t1)
             ops_counter.compute_macs(self.feature_extractor, clips, feature_adapter_params)
@@ -180,7 +180,7 @@ class FewShotRecogniser(nn.Module):
             else:
                 batch_features = self.feature_extractor(batch_clips, feature_adapter_params)
 
-            if ops_counter:
+            if False: #ops_counter:
                 torch.cuda.synchronize()
                 ops_counter.log_time(time.time() - t1)
                 # TODO add MACs to spatial transformaer
@@ -200,7 +200,7 @@ class FewShotRecogniser(nn.Module):
         t1 = time.time()
         feature_adapter_params = self.feature_adapter(task_embedding)
 
-        if ops_counter:
+        if False: #ops_counter:
             torch.cuda.synchronize()
             ops_counter.log_time(time.time() - t1)
             ops_counter.compute_macs(self.feature_adapter, task_embedding)
@@ -218,7 +218,7 @@ class FewShotRecogniser(nn.Module):
         t1 = time.time()
         reps = self.set_encoder(context_clips)
 
-        if ops_counter:
+        if False: #ops_counter:
             torch.cuda.synchronize()
             ops_counter.log_time(time.time() - t1)
             ops_counter.compute_macs(self.set_encoder, context_clips)
@@ -242,7 +242,7 @@ class FewShotRecogniser(nn.Module):
             t1 = time.time()
             batch_reps = self.set_encoder(batch_clips)
 
-            if ops_counter:
+            if False: #ops_counter:
                 torch.cuda.synchronize()
                 ops_counter.log_time(time.time() - t1)
                 ops_counter.compute_macs(self.set_encoder, batch_clips)
@@ -260,7 +260,7 @@ class FewShotRecogniser(nn.Module):
         """
         t1 = time.time()
         pooled_features = self.frame_pooler(features)
-        if ops_counter:
+        if False: #ops_counter:
             torch.cuda.synchronize()
             ops_counter.log_time(time.time() - t1)
             ops_counter.add_macs(features.size(0) * features.size(1))
@@ -365,14 +365,14 @@ class MultiStepFewShotRecogniser(FewShotRecogniser):
                 batch_context_loss = loss_fn(batch_context_logits, batch_context_labels)
                 batch_context_loss.backward()
 
-                if ops_counter:
+                if False: #ops_counter:
                     torch.cuda.synchronize()
                     ops_counter.log_time(time.time() - t1)
 
             t1 = time.time()
             inner_loop_optimizer.step()
             inner_loop_optimizer.zero_grad()
-            if ops_counter:
+            if False: #ops_counter:
                 torch.cuda.synchronize()
                 ops_counter.log_time(time.time() - t1)
 
@@ -598,14 +598,14 @@ class FullRecogniser(FewShotRecogniser):
                 #inner_loop_optimizer.step()
                 #inner_loop_optimizer.zero_grad()
 
-                if ops_counter:
+                if False: #ops_counter:
                     torch.cuda.synchronize()
                     ops_counter.log_time(time.time() - t1)
 
             t1 = time.time()
             inner_loop_optimizer.step()
             inner_loop_optimizer.zero_grad()
-            if ops_counter:
+            if False: #ops_counter:
                 torch.cuda.synchronize()
                 ops_counter.log_time(time.time() - t1)
 
@@ -719,14 +719,14 @@ class FullRecogniser2(FewShotRecogniser):
                 inner_loop_optimizer.step()
                 inner_loop_optimizer.zero_grad()
 
-                if ops_counter:
+                if False: #ops_counter:
                     torch.cuda.synchronize()
                     ops_counter.log_time(time.time() - t1)
 
             t1 = time.time()
             #inner_loop_optimizer.step()
             #inner_loop_optimizer.zero_grad()
-            if ops_counter:
+            if False: #ops_counter:
                 torch.cuda.synchronize()
                 ops_counter.log_time(time.time() - t1)
 

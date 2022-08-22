@@ -329,9 +329,13 @@ class TextEncoder(nn.Module):
     def __init__(self, clip_model):
         super().__init__()
         self.transformer = clip_model.transformer
+        #self.transformer = clip_model.module.transformer
         self.positional_embedding = clip_model.positional_embedding
+        #self.positional_embedding = clip_model.module.positional_embedding
         self.ln_final = clip_model.ln_final
+        #self.ln_final = clip_model.module.ln_final
         self.text_projection = clip_model.text_projection
+        #self.text_projection = clip_model.module.text_projection
         self.dtype = clip_model.dtype
 
     def forward(self, prompts, tokenized_prompts):
@@ -479,11 +483,12 @@ class CLIPPromptClassifier(HeadClassifier):
         """
         super().__init__()
         self.in_size = in_size
-        self._clip_model = clip_model
+        self._clip_model = clip_model.module
+        #self._clip_model = clip_model
         self.meth = meth
-        self.text_encoder = TextEncoder(clip_model)
-        self.logit_scale = clip_model.logit_scale
-        self.dtype = clip_model.dtype
+        self.text_encoder = TextEncoder(self._clip_model)
+        self.logit_scale = self._clip_model.logit_scale
+        self.dtype = self._clip_model.dtype
         self.prompt_learner = None
 
 

@@ -196,6 +196,33 @@ class CustomCLIP(nn.Module):
         return logits
 
 
+class CLIPDataParallel(nn.DataParallel):
+
+    def __init__(self, module, device_ids=None, output_device=None, dim=0):
+        "data parallel for clip model"
+        super(CLIPDataParallel, self).__init__(module, device_ids, output_device, dim)
+
+        #self.module=module
+
+    def encode_image(self, *inputs, **kwargs):
+        if not self.device_ids:
+            return self.module.encode_image(*inputs)
+
+        for t in chain(self.module.parameters(), self.module.buffers()):
+            if t.device != self.src_device_obj:
+                raise RuntimeError("Module must have its parameters and buffers"
+                                   "on devive {} (device_ids[0]) but found one of"
+                                   "them on device: {}".format(self.src_device_obj, t.device))
+
+        inputs, kwargs = self.scatter(inputs, kwargs, self.device_ids)
+        if len(self.device_ids) == 1:
+            return self.module.encode_image(*inputs[0])
+
+        replicas = self.replicate(self.module, self.device_ids[:len(inputs)])
+        replicas = [r.encode_image for r in replicas]
+        outputs = self.parallel_apply(replicas, inputs, kwargs)
+        return self.gather(outputs, self.output_device)
+
 
 class CLIPimf(nn.Module):
 
@@ -203,10 +230,10 @@ class CLIPimf(nn.Module):
         super(CLIPimf, self).__init__()
         device = "cuda" if torch.cuda.is_available() else "cpu"
         self.device = device
-        self.model = model
+        self.model = CLIPDataParallel(model)
         self.convert_to_fp32()
         self.preprocess = preprocess
-        self.model.to(device)
+        #self.model.to(device)
         #self.model, self.preprocess = clip.load('ViT-B/32', self.device)
     
     def _flatten(self, x):
@@ -216,6 +243,7 @@ class CLIPimf(nn.Module):
     def forward(self, x, param_dict=None):
         x = self._flatten(x)
         #x = self.preprocess(x)
+        #x = self.model.module.encode_image(x)
         x = self.model.encode_image(x)
 
         return x
