@@ -34,7 +34,7 @@ from models.normalisation_layers import TaskNorm, get_normalisation_layer
 from feature_adapters.resnet_adaptation_layers import FilmLayer, FilmLayerGenerator
 
 import clip
-
+from itertools import chain
 
 
 
