@@ -130,9 +130,10 @@ class FewShotRecogniser(nn.Module):
         Function that moves the feature extractor and feature adapter to the second GPU.
         :return: Nothing.
         """
+        pass
         #self.feature_extractor.cuda(1)
-        self.feature_extractor = nn.DataParallel(self.feature_extractor)
-        self.feature_adapter.cuda(1)
+        #self.feature_extractor = nn.DataParallel(self.feature_extractor)
+        #self.feature_adapter.cuda(1)
         #device_id = 'cuda:' + str(1)
         #self.classifier._set_device(torch.device(device_id))
 

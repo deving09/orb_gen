@@ -313,10 +313,10 @@ class LinearClassifier(HeadClassifier):
         t1 = time.time()
 
         out = self.linear(features)
-        if ops_counter:
-            torch.cuda.synchronize()
-            ops_counter.log_time(time.time() - t1)
-            ops_counter.compute_macs(self.linear, features)
+        #if ops_counter:
+        #    torch.cuda.synchronize()
+        #    ops_counter.log_time(time.time() - t1)
+        #    ops_counter.compute_macs(self.linear, features)
         
         return out
 
