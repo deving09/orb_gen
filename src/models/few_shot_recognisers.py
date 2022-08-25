@@ -121,9 +121,9 @@ class FewShotRecogniser(nn.Module):
         Function that moves whole model to self.device.
         :return: Nothing.
         """
-        self.to(self.device)
-        if self.use_two_gpus:
-            self._distribute_model()
+        #self.to(self.device)
+        #if self.use_two_gpus:
+        #    self._distribute_model()
 
     def _distribute_model(self):
         """

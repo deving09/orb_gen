@@ -56,13 +56,56 @@ class CLIPDataParallel(nn.DataParallel):
                                    "them on device: {}".format(self.src_device_obj, t.device))
 
         inputs, kwargs = self.scatter(inputs, kwargs, self.device_ids)
+        #print(self.device_ids)
+        #print([i[0].device for i in inputs])
         if len(self.device_ids) == 1:
             return self.module.encode_image(*inputs[0])
 
-        replicas = self.replicate(self.module, self.device_ids[:len(inputs)])
-        replicas = [r.encode_image for r in replicas]
+        replicas = self.replicate(self.module.visual, self.device_ids[:len(inputs)])
+        #print("Len Replicas: %d" % len(replicas))
+        #print("Len Inputs: %d" % len(inputs))
+        """
+        for i, r in enumerate(replicas):
+            if i == 0:
+                print([p.device for p in r.parameters()])
+            else:
+                print(list(r.__dict__.keys()))
+                print(list(r._former_parameters))
+                print(["%s:%s" %(n, v.device) for n, v in r._former_parameters.items()])
+                print(["%s:%s" %(n, v.device) for n, v in r._buffers.items()])
+                print(["%s:%s" %(n, v.device) for n, v in r._parameters.items()])
+                print(r.training)
+                print(r._is_replica)
+                print(r.class_embedding.device)
+                print(r.positional_embedding.device)
+                print(r.proj.device)
+                #print(r._modules)
+                print([b for b in r._modules])
+                print(r._modules.__dict__)
+                print(r._modules["transformer"]._modules["resblocks"]._modules)
+                #print(r.proj.device)
+                ['training', '_parameters', '_buffers', '_non_persistent_buffers_set', '_backward_hooks', '_is_full_backward_hook', '_forward_hooks', '_forward_pre_hooks', '_state_dict_hooks', '_load_state_dict_pre_hooks', '_modules', 'input_resolution', 'output_dim', '_is_replica', '_former_parameters', 'class_embedding', 'positional_embedding', 'proj'
+        """
+
+        #replicas = [r.encode_image for r in replicas]
+        #print(replicas)
         outputs = self.parallel_apply(replicas, inputs, kwargs)
         return self.gather(outputs, self.output_device)
+    
+    
+    def convert_to_fp32(self):
+        for p in self.model.parameters():
+            p.data = p.data.float()
+            #p.grad.data = p.grad.data.float()
+
+    @property
+    def output_size(self):
+        return 512
+    
+    
+    def _flatten(self, x):
+        sz = x.size()
+        return x.view(-1, sz[-3], sz[-2], sz[-1]) if x.dim() >=5 else x
 
 
 class CLIPimf(nn.Module):
@@ -102,9 +145,10 @@ class CLIPimf(nn.Module):
 
 def clip_vitb_32(**kwargs):
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    model, preprocess = clip.load('ViT-B/32', device)
+    model, preprocess = clip.load('ViT-B/32', jit=False) #, device)
     clip_model = CLIPimf(model, preprocess)
-    return clip_model
+    return  CLIPDataParallel(clip_model)
+    #return clip_model
 
 
 def clip_vitb_16(**kwargs):
