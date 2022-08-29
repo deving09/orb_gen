@@ -42,12 +42,16 @@ from models.classifiers import CLIPLinearClassifier, LinearClassifier, VersaClas
 from utils.optim import init_optimizer
 from utils.data import get_clip_loader
 
-
+import psutil
+from guppy import hpy; h=hpy()
+from memory_profiler import profile
 
 class FewShotRecogniser(nn.Module):
     """
     Generic few-shot classification model.
     """
+    
+    @profile(precision=4)
     def __init__(self, pretrained_extractor_path: str, feature_extractor: str, batch_normalisation: str,
         adapt_features: bool, classifier: str, clip_length: int, batch_size: int, learn_extractor: bool,
         feature_adaptation_method: str, use_two_gpus: bool):
@@ -121,7 +125,7 @@ class FewShotRecogniser(nn.Module):
         Function that moves whole model to self.device.
         :return: Nothing.
         """
-        #self.to(self.device)
+        self.to(self.device)
         #if self.use_two_gpus:
         #    self._distribute_model()
 
@@ -136,7 +140,8 @@ class FewShotRecogniser(nn.Module):
         #self.feature_adapter.cuda(1)
         #device_id = 'cuda:' + str(1)
         #self.classifier._set_device(torch.device(device_id))
-
+    
+    @profile(precision=4)
     def _get_features(self, clips, feature_adapter_params, ops_counter=None, context=False):
         """
         Function that passes clips through an adapted feature extractor to get adapted (and flattened) frame features.
@@ -149,8 +154,8 @@ class FewShotRecogniser(nn.Module):
         self._set_model_state(context)
         t1 = time.time()
         if self.use_two_gpus:
-            clips = clips.cuda(1)
-            features = self.feature_extractor(clips, feature_adapter_params).cuda(0)
+            #clips = clips.cuda(1)
+            features = self.feature_extractor(clips, feature_adapter_params) #.cuda(0)
         else:
             features = self.feature_extractor(clips, feature_adapter_params)
 
@@ -161,6 +166,7 @@ class FewShotRecogniser(nn.Module):
 
         return features
 
+    @profile(precision=4)
     def _get_features_in_batches(self, clip_loader, feature_adapter_params, ops_counter=None, context=False):
         """
         Function that passes clips in batches through an adapted feature extractor to get adapted (and flattened) frame features.
@@ -172,15 +178,17 @@ class FewShotRecogniser(nn.Module):
         """
         features = []
         self._set_model_state(context)
+        print(psutil.virtual_memory().percent)
         for batch_clips in clip_loader:
             batch_clips = batch_clips.to(self.device, non_blocking=True)
             t1 = time.time()
             if self.use_two_gpus:
-                batch_clips = batch_clips.cuda(1)
-                batch_features = self.feature_extractor(batch_clips, feature_adapter_params).cuda(0)
+                batch_clips = batch_clips #.cuda(1)
+                batch_features = self.feature_extractor(batch_clips, feature_adapter_params) #.cuda(0)
             else:
                 batch_features = self.feature_extractor(batch_clips, feature_adapter_params)
 
+            
             if False: #ops_counter:
                 torch.cuda.synchronize()
                 ops_counter.log_time(time.time() - t1)
@@ -188,8 +196,14 @@ class FewShotRecogniser(nn.Module):
                 ops_counter.compute_macs(self.feature_extractor, batch_clips, feature_adapter_params)
 
             features.append(batch_features)
-
-        return torch.cat(features, dim=0)
+        
+        #print(psutil.virtual_memory().percent)
+        feats = torch.cat(features, dim=0)
+        #print(psutil.virtual_memory().percent)
+        del(features)
+        #print(psutil.virtual_memory().percent)
+        #print(h.heap())
+        return feats
 
     def _get_feature_adapter_params(self, task_embedding, ops_counter=None):
         """
@@ -252,6 +266,7 @@ class FewShotRecogniser(nn.Module):
 
         return self.set_encoder.aggregate(reps, reduction=reduction, switch_device=self.use_two_gpus)
 
+    @profile(precision=4)
     def _pool_features(self, features, ops_counter=None):
         """
         Function that pools frame features per clip.
@@ -557,6 +572,7 @@ class FullRecogniser(FewShotRecogniser):
 
         self.num_grad_steps = num_grad_steps # Or epochs
 
+    @profile(precision=4)
     def personalise(self, context_clips, context_clip_labels, learning_args, ops_counter=None, object_list=None):
         """
         Function that learns a new task by taking a fixed number of gradient steps on the task's context set. For each task, a new linear classification layer is added (and FiLM layers if self.adapt_features == True).
@@ -596,20 +612,21 @@ class FullRecogniser(FewShotRecogniser):
                 batch_context_loss = loss_fn(batch_context_logits, batch_context_labels)
                 batch_context_loss.backward()
                 
-                #inner_loop_optimizer.step()
-                #inner_loop_optimizer.zero_grad()
+                inner_loop_optimizer.step()
+                inner_loop_optimizer.zero_grad()
 
                 if False: #ops_counter:
                     torch.cuda.synchronize()
                     ops_counter.log_time(time.time() - t1)
 
             t1 = time.time()
-            inner_loop_optimizer.step()
-            inner_loop_optimizer.zero_grad()
+            #inner_loop_optimizer.step()
+            #inner_loop_optimizer.zero_grad()
             if False: #ops_counter:
                 torch.cuda.synchronize()
                 ops_counter.log_time(time.time() - t1)
 
+    @profile(precision=4)
     def predict(self, clips, ops_counter=None, context=False):
         """
         Function that processes target clips in batches to get logits over object classes for each clip.
@@ -625,6 +642,7 @@ class FullRecogniser(FewShotRecogniser):
         features = self._pool_features(features, ops_counter)
         return self.classifier.predict(features, ops_counter)
 
+    @profile(precision=4)
     def predict_a_batch(self, clips, ops_counter=None, context=False):
         """
         Function that processes a batch of clips to get logits over object classes for each clip.
