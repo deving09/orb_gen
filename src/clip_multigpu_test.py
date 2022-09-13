@@ -44,7 +44,12 @@ from utils.data import get_clip_loader, unpack_task, attach_frame_history
 from utils.logging import print_and_log, get_log_files, stats_to_str
 from utils.eval_metrics import TrainEvaluator, ValidationEvaluator, TestEvaluator
 
+from models.classifiers import CLIPLinearClassifier, LinearClassifier, VersaClassifier, PrototypicalClassifier, MahalanobisClassifier, CLIPPromptClassifier
+from models.poolers import MeanPooler
+
 import torch.nn as nn
+import gc 
+
 #torch.multiprocessing.set_sharing_strategy('file_system')
 import clip
 def main():
@@ -54,20 +59,35 @@ def main():
 
 
 class TextCLIP(nn.Module):
-    def __init__(self, model) :
+    def __init__(self, model, device=None) :
         super(TextCLIP, self).__init__()
         self.model = model
+        self.convert_to_fp32()
+        self.device = device
+        self.model.to(self.device)
         
     def forward(self,text):
+        #print(text.device)
+        #print(self.device)
         return self.model.encode_text(text)
     
+    def convert_to_fp32(self):
+        for p in self.model.parameters():
+            p.data = p.data.float()
+    
+
 class ImageCLIP(nn.Module):
     def __init__(self, model) :
         super(ImageCLIP, self).__init__()
         self.model = model
+        self.convert_to_fp32()
         
     def forward(self,image):
         return self.model.encode_image(image)
+
+    def convert_to_fp32(self):
+        for p in self.model.parameters():
+            p.data = p.data.float()
 
 
 class Learner:
@@ -81,26 +101,38 @@ class Learner:
         print_and_log(self.logfile, "Checkpoint Directory: %s\n" % self.checkpoint_dir)
 
         self.batch_size = self.args.batch_size
-        """
-        random.seed(self.args.seed)
-        torch.manual_seed(self.args.seed)
-        device_id = 'cpu'
-        self.map_location = 'cpu'
-        if torch.cuda.is_available() and self.args.gpu >= 0:
-            cudnn.enabled = True
-            cudnn.benchmark = False
-            cudnn.deterministic = True
-            device_id = 'cuda:' + str(self.args.gpu)
-            torch.cuda.manual_seed_all(self.args.seed)
-            self.map_location = lambda storage, loc: storage.cuda()
 
-        self.device = torch.device(device_id)
-        self.ops_counter = OpsCounter(count_backward=True)
-        """
+        self.device = torch.device("cuda:0")
+        
         self.init_dataset()
         self.init_evaluators()
         self.model_text, self.model_image = self.init_model()
         self.loss = cross_entropy
+
+        self.output_size = 512
+        
+        classifier = self.args.classifier
+        
+        if classifier == 'linear':
+            # classifier head will instead be appended per-task during train/test
+            self.classifier = LinearClassifier(self.output_size)
+        elif classifier == "sklinear":
+            self.classifier =  SKLinearClassifier(self.output_size)
+        elif classifier == 'versa':
+            self.classifier = VersaClassifier(self.output_size)
+        elif classifier == 'proto':
+            self.classifier = PrototypicalClassifier()
+        elif classifier == 'mahalanobis':
+            self.classifier = MahalanobisClassifier()
+        elif classifier == "clip":
+            self.classifier = CLIPLinearClassifier(self.output_size, self.model_text)
+        elif classifier == "coop":
+            self.classifier = CLIPPromptClassifier(self.output_size, self.model_text, classifier)
+        elif classifier == "cocoop":
+            self.classifier = CLIPPromptClassifier(self.output_size, self.model_text, classifier) 
+       
+        self.classifier._set_device(self.device)
+        self.pooler = MeanPooler(T=self.args.clip_length)
         #self.train_task_fn = self.train_task_in_batches if self.args.with_lite else self.train_task
 
         #self.init_trainer()
@@ -131,6 +163,7 @@ class Learner:
             'frame_size': self.args.frame_size,
             'annotations_to_load': self.args.annotations_to_load,
             'preload_clips': self.args.preload_clips,
+            'num_workers': self.args.num_workers
         }
 
         dataloader = DataLoader(dataset_info)
@@ -142,11 +175,14 @@ class Learner:
 
         model, preprocess = clip.load('ViT-B/32', jit=False)
         
-        model_text = TextCLIP(model)
+        model_text = TextCLIP(model, self.device)
         model_image = ImageCLIP(model)
 
-        model_text = nn.DataParallel(model_text)
-        model_image = nn.DataParallel(model_image)
+        #model_text = nn.DataParallel(model_text)
+        #model_image = nn.DataParallel(model_image)
+
+        model_text.to(self.device)
+        model_image.to(self.device)
 
         return model_text, model_image
 
@@ -188,6 +224,47 @@ class Learner:
         pass
 
 
+    def eval_test(self, target_frames_by_video, target_paths_by_video, target_labels_by_video):
+        with torch.no_grad():
+            for video_frames, video_paths, video_label in zip(target_frames_by_video, target_paths_by_video, target_labels_by_video):
+                video_clips = attach_frame_history(video_frames, self.args.clip_length)
+                #print(self.args.clip_length)
+                #print(video_clips.shape)
+                features = []
+                for i in range(0, video_clips.shape[0], self.args.batch_size):
+                    bc = video_clips[i:i+self.args.batch_size]
+                    bc = bc.to(self.device)
+                    sz = bc.size()
+                    bc = bc.view(-1, sz[-3], sz[-2], sz[-1]) if bc.dim() >= 5 else bc
+
+                    features.append(self.model_image(bc))
+                
+                del video_clips
+                #vid_logits = [self.model_image(video_clips[i:i+self.args.batch_size]) for i in range(0, video_clips.shape[0], self.args.batch_size)]
+                
+                """
+                clip_loader = get_clip_loader(video_clips, self.batch_size)
+                #clip_loader = get_clip_loader(video_frames, self.batch_size)
+
+                features = []
+
+                for batch_clips in clip_loader:
+
+                    sz = batch_clips.size()
+                    
+                    #batch_clips = batch_clips.to(torch.device("cuda:0"))
+                    batch_clips = batch_clips.to(self.device)
+                    batch_clips = batch_clips.view(-1, sz[-3], sz[-2], sz[-1]) if batch_clips.dim() >= 5 else batch_clips
+                    batch_features = self.model_image(batch_clips)
+
+                    #gc.collect()
+                    
+                    #features.append(batch_features)
+                """
+        pass
+
+
+
     def test(self, path):
 
         self.model_text, self.model_image = self.init_model()
@@ -196,6 +273,7 @@ class Learner:
         num_test_tasks = self.test_queue.num_users * self.args.test_tasks_per_user
         print(self.args.test_tasks_per_user)
         for step, task_dict in enumerate(self.test_queue.get_tasks()):
+            
             context_clips, context_paths, context_labels, target_frames_by_video, target_paths_by_video, target_labels_by_video, object_list = unpack_task(task_dict, torch.device("cpu"), context_to_device=False, preload_clips=self.args.preload_clips)
            
             print(object_list)
@@ -207,7 +285,6 @@ class Learner:
 
             # Initialize Current Model
             #model.set_test_mode(True)
-            
 
             # take a few grad steps using context clips
             t1 = time.time()
@@ -215,14 +292,16 @@ class Learner:
             
             # Train 
             #model = self.trainer.run(model, context_clips, context_labels, learning_args, ops_counter=self.ops_counter)
-            context_clip_loader = get_clip_loader(context_clips, self.batch_size)
+            context_clip_loader = get_clip_loader(context_clips, self.batch_size, with_labels=True)
 
             task_embedding = None 
 
             with torch.no_grad():
                 features = []
 
-                for batch_clips in context_clip_loader:
+                for batch_clips, batch_labels in context_clip_loader:
+
+                    batch_clips = batch_clips.to(self.device)
                     
                     sz = batch_clips.size()
                     batch_clips = batch_clips.view(-1, sz[-3], sz[-2], sz[-1]) if batch_clips.dim() >= 5 else batch_clips
@@ -231,45 +310,104 @@ class Learner:
                     features.append(batch_features)
 
                 features = torch.cat(features, dim=0)
-            
-            1/0
-            if self.args.classifier == "linear":
-                pass
-            elif self.args.classifier == "coop":
-                pass
+                features = self.pooler(features)
+
+                features = features.detach()
+
+                self.classifier.configure(features, batch_labels, None, object_list=object_list)
+                gc.collect()
 
 
 
-            model.personalise(context_clips, context_labels, learning_args, ops_counter=self.ops_counter, object_list=object_list)
-            self.ops_counter.log_time(time.time() - t1)
-            # add task's ops to self.ops_counter
-            self.ops_counter.task_complete()
 
-            # loop through cached target videos for the current task
-            with torch.no_grad():
-                for video_frames, video_paths, video_label in zip(cached_target_frames_by_video, cached_target_paths_by_video, cached_target_labels_by_video):
-                    video_clips = attach_frame_history(video_frames, self.args.clip_length)
-                    
-                    # Predict Clips
-                    # Fix this section
-                    video_logits = model.predict(video_clips)
-                    #video_logits = inner_loop_model.predict(video_clips)
-                    
-                    self.test_evaluator.append_video(video_logits, video_label, video_paths, object_list)
+            """
+
+            inner_loop_optimizer = init_optimizer(self, lr, optimizer_type, extractor_scale_factor)
                 
-                # if this is the user's last task, get the average performance for the user
-                if (step+1) % self.args.test_tasks_per_user == 0:
+            for _ in range(self.args.num_grad_steps):
+                for batch_context_clips, batch_context_labels in context_clip_loader:
+                    
+                    batch_features = self.model_image(batch_context_clips)
+                    batch_features = self.pooler(batch_features)
+                    batch_logits = self.classifier.predict(batch_features, None)
+
+                    batch_loss = cross_entropy(batch_logits, batch_context_labels)
+                    batch_loss.backward()
+                    
+                    # inner pass through updating
+                    #inner_loop_optimizer.step()
+                    #inner_loop_optimizer.zero_grad()
+
+                #post pass through updating
+                inner_loop_optimizer.step()
+                inner_loop_optimizer.zero_grad()
+
+            """
+
+            self.eval_test(target_frames_by_video, target_paths_by_video, target_labels_by_video)
+            """
+            with torch.no_grad():
+                #for video_frames, video_paths, video_label in zip(cached_target_frames_by_video, cached_target_paths_by_video, cached_target_labels_by_video):
+                for video_frames, video_paths, video_label in zip(target_frames_by_video, target_paths_by_video, target_labels_by_video):
+                    #print(video_frames.shape)
+                    video_clips = attach_frame_history(video_frames, self.args.clip_length)
+                    #print(self.args.clip_length)
+                    print(video_clips.shape)
+                    clip_loader = get_clip_loader(video_clips, self.batch_size)
+                    #clip_loader = get_clip_loader(video_frames, self.batch_size)
+
+                    features = []
+
+                    for batch_clips in clip_loader:
+
+                        sz = batch_clips.size()
+                        
+                        #batch_clips = batch_clips.to(torch.device("cuda:0"))
+                        batch_clips = batch_clips.to(self.device)
+                        batch_clips = batch_clips.view(-1, sz[-3], sz[-2], sz[-1]) if batch_clips.dim() >= 5 else batch_clips
+                        batch_features = self.model_image(batch_clips)
+
+                        #gc.collect()
+                        
+                        #features.append(batch_features)
+
+                    del video_clips
+                    del video_frames
+                    del clip_loader
+                    #gc.collect()
+                    #features = torch.cat(features, dim=0)
+                    #features = self.pooler(features)
+                    #video_logits = self.classifier.predict(features)
+            """
+
+            """
+                    self.test_evaluator.append_video(video_logits, video_label, video_paths, object_list)
+
+
+                if (step + 1) & self.args.test_tasks_per_user == 0:
                     _, current_user_stats = self.test_evaluator.get_mean_stats(current_user=True)
-                    print_and_log(self.logfile, f'{self.args.test_set} user {task_dict["user_id"]} ({self.test_evaluator.current_user+1}/{self.test_queue.num_users}) stats: {stats_to_str(current_user_stats)}')
-                    if (step+1) < num_test_tasks:
+                    print_and_log(self.logfile, f'{self.args.test_set} user {task_dict["user_id"]} ({self.test_evaluator.current_user+1}/{self.test_queue.num_users}) stats: {stats_to_str(current_user_stats)}') 
+
+                    if (step+1) <  num_test_tasks:
                         self.test_evaluator.next_user()
+            
 
         stats_per_user, stats_per_video = self.test_evaluator.get_mean_stats()
         stats_per_user_str, stats_per_video_str = stats_to_str(stats_per_user), stats_to_str(stats_per_video)
-        mean_ops_stats = self.ops_counter.get_mean_stats()
-        print_and_log(self.logfile, f'{self.args.test_set} [{path}]\n per-user stats: {stats_per_user_str}\n per-video stats: {stats_per_video_str}\n model stats: {mean_ops_stats}\n')
+        print_and_log(self.logfile, f'{self.args.test_set} [{path}]\n per-user stats: {stats_per_user_str}\n per-video stats: {stats_per_video_str}\n model stats: {0.0}\n')
+
         self.test_evaluator.save()
         self.test_evaluator.reset()
+        
+        """
+        
+
+
+                   
+
+        
+
+
     
     def save_checkpoint(self, epoch):
         torch.save({

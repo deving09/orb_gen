@@ -37,8 +37,10 @@ class DatasetFromClipPaths(Dataset):
         :param frame_path: (str) Path to frame.
         :return: (torch.Tensor) Loaded and transformed frame.
         """
-        frame = Image.open(frame_path)
-        frame = tv_F.to_tensor(frame)
+        np_frame = Image.open(frame_path)
+
+        frame = tv_F.to_tensor(np_frame)
+        #del np_frame
         return tv_F.normalize(frame, mean=self.normalize_stats['mean'], std=self.normalize_stats['std'])
 
     def __len__(self):

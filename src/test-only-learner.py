@@ -54,7 +54,7 @@ def main():
     learner.run()
 
 class Learner:
-    @profile(precision=4)
+    #@profile(precision=4)
     def __init__(self):
         self.args = parse_args(learner='gradient-learner')
 
@@ -87,7 +87,7 @@ class Learner:
         #self.init_trainer()
 
 
-    @profile(precision=4)
+    #@profile(precision=4)
     def init_dataset(self):
 
         dataset_info = {
@@ -113,6 +113,7 @@ class Learner:
             'frame_size': self.args.frame_size,
             'annotations_to_load': self.args.annotations_to_load,
             'preload_clips': self.args.preload_clips,
+            'num_workers': self.args.num_workers
         }
 
         dataloader = DataLoader(dataset_info)
@@ -120,7 +121,7 @@ class Learner:
         self.validation_queue = dataloader.get_validation_queue()
         self.test_queue = dataloader.get_test_queue()
         
-    @profile(precision=4)
+    #@profile(precision=4)
     def init_model(self):
         model = FullRecogniser(
                     self.args.pretrained_extractor_path, self.args.feature_extractor, self.args.batch_normalisation,
@@ -133,7 +134,7 @@ class Learner:
         model._send_to_device() 
         return model
 
-    @profile(precision=4)
+    #@profile(precision=4)
     def init_task_model(self):
         #return self.model
         model = self.init_model()
@@ -142,14 +143,14 @@ class Learner:
         return model
 
 
-    @profile(precision=4)
+    #@profile(precision=4)
     def zero_grads(self, model):
         # init grad buffers to 0, otherwise None until first backward
         for param in model.parameters():
             if param.requires_grad:
                 param.grad = param.new(param.size()).fill_(0)
        
-    @profile(precision=4)
+    #@profile(precision=4)
     def copy_grads(self, src_model, dest_model):
         for (src_param_name, src_param), (dest_param_name, dest_param) in zip(src_model.named_parameters(), dest_model.named_parameters()):
             assert src_param_name == dest_param_name
@@ -157,7 +158,7 @@ class Learner:
                 dest_param.grad += src_param.grad.detach()
                 dest_param.grad.clamp_(-10, 10)
     
-    @profile(precision=4)
+    #@profile(precision=4)
     def init_evaluators(self):
         self.train_metrics = ['frame_acc']
         self.evaluation_metrics = ['frame_acc', 'frames_to_recognition', 'video_acc']
@@ -165,7 +166,7 @@ class Learner:
         self.validation_evaluator = ValidationEvaluator(self.evaluation_metrics)
         self.test_evaluator = TestEvaluator(self.evaluation_metrics, self.checkpoint_dir)
 
-    @profile(precision=4)
+    #@profile(precision=4)
     def run(self):
 
         torch.save(self.model.state_dict(), self.checkpoint_path_final)
@@ -182,7 +183,7 @@ class Learner:
     def validate(self):
         pass
 
-    @profile(precision=4)
+    #@profile(precision=4)
     def test(self, path):
 
         self.model = self.init_model()
@@ -258,7 +259,7 @@ class Learner:
             'best_stats': self.validation_evaluator.get_current_best_stats()
         }, os.path.join(self.checkpoint_dir, 'checkpoint.pt'))
 
-    @profile(precision=4)
+    #@profile(precision=4)
     def load_checkpoint(self):
         checkpoint = torch.load(os.path.join(self.checkpoint_dir, 'checkpoint.pt'))
         self.start_epoch = checkpoint['epoch']

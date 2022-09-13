@@ -113,25 +113,25 @@ class CLIPDataParallel(nn.DataParallel):
 
 class ImageCLIP(nn.Module):
 
-    @profile(precision=4)
+    #@profile(precision=4)
     def __init__(self, model):
         super(ImageCLIP, self).__init__()
         self.model = model
 
-    @profile(precision=4)
+    #@profile(precision=4)
     def forward(self, image):
         #print(image.device)
         #image = self._flatten(image)
         return self.model.encode_image(image)
 
-    @profile(precision=4)
+    #@profile(precision=4)
     def _flatten(self, x):
         sz = x.size()
         return x.view(-1, sz[-3], sz[-2], sz[-1]) if x.dim() >=5 else x
 
 class CLIPimf(nn.Module):
     
-    @profile(precision=4)
+    #@profile(precision=4)
     def __init__(self, model, preprocess):
         super(CLIPimf, self).__init__()
         device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -143,12 +143,12 @@ class CLIPimf(nn.Module):
         #self.model.to(device)
         #self.model, self.preprocess = clip.load('ViT-B/32', self.device)
     
-    @profile(precision=4)
+    #@profile(precision=4)
     def _flatten(self, x):
         sz = x.size()
         return x.view(-1, sz[-3], sz[-2], sz[-1]) if x.dim() >=5 else x
 
-    @profile(precision=4)
+    #@profile(precision=4)
     def forward(self, x, param_dict=None):
         x = self._flatten(x)
         #x = self.preprocess(x)

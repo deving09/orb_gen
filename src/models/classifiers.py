@@ -224,6 +224,7 @@ class CLIPLinearClassifier(nn.Module):
 
     def _set_device(self, device):
         self.device = device
+        self._clip_model.to(self.device)
 
 
     def configure(self, context_features, context_labels, ops_counter=None, object_list=None):
@@ -232,9 +233,11 @@ class CLIPLinearClassifier(nn.Module):
         prompts
         """
 
-        text_inputs = torch.cat([clip.tokenize(f"a photo of a {c}") for c in object_list]).to(self.device)
+        text_inputs = torch.cat([clip.tokenize(f"a photo of a {c}") for c in object_list])   #.to(self.device)
+        text_inputs = text_inputs.to(self.device)
         #self._clip_model.to(self.device)
-        text_features = self._clip_model.encode_text(text_inputs)
+        #text_features = self._clip_model.encode_text(text_inputs)
+        text_features = self._clip_model(text_inputs)
         text_features /= text_features.norm(dim=-1, keepdim=True)
         
         n_cls = len(object_list)
@@ -242,9 +245,15 @@ class CLIPLinearClassifier(nn.Module):
         
         nn.init.kaiming_uniform_(self.linear.weight, mode="fan_out")
         nn.init.zeros_(self.linear.bias)
-        self.linear.weight.data = text_features #context_features.dtype)
-        #self.linear.bias.data = self.linear.bias.type(context_features.dtype)
+        self.linear.weight.data = text_features.type(context_features.dtype)
+        self.linear.bias.data = self.linear.bias.type(context_features.dtype)
+
+        #self.linear.cuda()
+        #self.linear = nn.DataParallel(self.linear)
         self.linear.to(self.device)
+        
+        #self.linear.bias.data = self.linear.bias.type(context_features.dtype)
+        #self.linear.to(self.device)
         #self._clip_model.to(self.device)
 
 
@@ -255,6 +264,8 @@ class CLIPLinearClassifier(nn.Module):
         :return: (torch.Tensor) Logits over object classes for each feature.
         """
         t1 = time.time()
+
+        features = features.to(self.device)
 
         features /= features.norm(dim=-1, keepdim=True)
 
@@ -270,12 +281,17 @@ class CLIPLinearClassifier(nn.Module):
         self.linear = None
 
 
+
+class SKLinearClassifier(HeadClassifier):
+    pass
+
+
 class LinearClassifier(HeadClassifier):
     """
     Class for a linear classification layer.
     """
     
-    @profile(precision=4)
+    #@profile(precision=4)
     def __init__(self, in_size): #, device=None):
         """
         Creates instance of LinearClassifier.
@@ -290,7 +306,7 @@ class LinearClassifier(HeadClassifier):
         self.device = device
 
     #def configure(self, out_size, device, init_zeros=True):
-    @profile(precision=4)
+    #@profile(precision=4)
     def configure(self, context_features, context_labels, ops_counter=None, object_list=None):
         """
         Function that creates and initialises a linear classification layer.
@@ -309,7 +325,7 @@ class LinearClassifier(HeadClassifier):
         self.linear.bias.data = self.linear.bias.type(context_features.dtype)
         self.linear.to(self.device)
   
-    @profile(precision=4)
+    #@profile(precision=4)
     def predict(self, features, ops_counter=None):
         """
         Function that passes a batch of target features through linear classification layer to get logits over object classes for each feature.
@@ -333,7 +349,7 @@ class LinearClassifier(HeadClassifier):
 
 class TextEncoder(nn.Module):
     
-    @profile(precision=4)
+    #@profile(precision=4)
     def __init__(self, clip_model):
         super().__init__()
         self.transformer = clip_model.transformer
@@ -346,7 +362,7 @@ class TextEncoder(nn.Module):
         #self.text_projection = clip_model.module.text_projection
         self.dtype = clip_model.dtype
 
-    @profile(precision=4)
+    #@profile(precision=4)
     def forward(self, prompts, tokenized_prompts):
         x = prompts + self.positional_embedding.type(self.dtype)
 
@@ -371,7 +387,7 @@ class TextEncoder(nn.Module):
 
 class PromptLearner(nn.Module):
     
-    @profile(precision=4)
+    #@profile(precision=4)
     def __init__(self, prompt_meth, classnames, clip_model, device):
         super().__init__()
         n_cls = len(classnames)
@@ -433,7 +449,7 @@ class PromptLearner(nn.Module):
         self.name_lens = name_lens
 
 
-    @profile(precision=4)
+    #@profile(precision=4)
     def construct_prompts(self, ctx, prefix, suffix, label=None):
         
         if label is not None:
@@ -452,7 +468,7 @@ class PromptLearner(nn.Module):
         return prompts
 
     
-    @profile(precision=4)
+    #@profile(precision=4)
     def forward(self, im_features):
         prefix = self.token_prefix
         suffix = self.token_suffix
@@ -491,7 +507,7 @@ class CLIPPromptClassifier(HeadClassifier):
     Initializes Randomly or with base prompts and can be either a global prompt or a contextual prompt
     """
     
-    @profile(precision=4)
+    #@profile(precision=4)
     def __init__(self, in_size, clip_model, meth="coop"):
         """
         """
@@ -513,7 +529,7 @@ class CLIPPromptClassifier(HeadClassifier):
         #    self.prompt_learner.to(self.device)
 
 
-    @profile(precision=4)
+    #@profile(precision=4)
     def configure(self, context_features, context_labels, ops_counter=None, object_list=None):
         """
         Function that creates and initialises a linear classification layer based on learned
@@ -525,7 +541,7 @@ class CLIPPromptClassifier(HeadClassifier):
         #self.prompt_learner.to(self.device)
 
 
-    @profile(precision=4)
+    #@profile(precision=4)
     def predict(self, features, ops_counter=None):
         """
         Function that passes a batch of target features through linear classification layer to get logits over object classes for each feature.

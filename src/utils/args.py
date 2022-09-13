@@ -35,7 +35,7 @@ def parse_args(learner='default'):
                         help="If True, learns FiLM layers for feature adaptation.")
     parser.add_argument("--feature_adaptation_method", default="generate", choices=["generate", "learn"],
                         help="Generate FiLM layers with hyper-networks or add-in and learn FiLM layers directly (default: generate).")
-    parser.add_argument("--classifier", default="linear", choices=["linear", "versa", "proto", "mahalanobis", "clip", "coop", "cocoop"],
+    parser.add_argument("--classifier", default="linear", choices=["linear", "versa", "proto", "mahalanobis", "clip", "coop", "cocoop", "sklinear"],
                         help="Classifier head to use (default: linear).")
     parser.add_argument("--batch_normalisation", choices=["basic",  "task_norm"], default="basic", 
                         help="Normalisation layer to use (default: basic).")

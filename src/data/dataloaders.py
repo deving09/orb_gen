@@ -5,7 +5,11 @@ import os
 import torch
 from data.queues import UserEpisodicDatasetQueue, ObjectEpisodicDatasetQueue
 
+from memory_profiler import profile
+
 class DataLoader():
+
+    #@profile(precision=4)
     def __init__(self, dataset_info):
         self.train_queue = None
         self.validation_queue = None
@@ -66,15 +70,19 @@ class DataLoader():
                                         num_workers=dataset_info.get("num_workers", None),
                                         test_mode=True)
 
+    #@profile(precision=4)
     def get_train_queue(self):
         return self.train_queue
 
+    #@profile(precision=4)
     def get_validation_queue(self):
         return self.validation_queue
     
+    #@profile(precision=4)
     def get_test_queue(self):
         return self.test_queue
     
+    #@profile(precision=4)
     def config_user_centric_queue(self, root, way_method, object_cap, shot_method, shots, video_types, \
                             subsample_factor, num_clips, clip_length, preload_clips, frame_size, annotations_to_load, \
                             tasks_per_user, test_mode=False, with_cluster_labels=False, with_caps=False, shuffle=False, num_workers=None):
@@ -82,6 +90,7 @@ class DataLoader():
                                 subsample_factor, num_clips, clip_length, preload_clips, frame_size, annotations_to_load, \
                                 tasks_per_user, test_mode, with_cluster_labels, with_caps, shuffle, num_workers=num_workers)
     
+    #@profile(precision=4)
     def config_object_centric_queue(self, root, way_method, object_cap, shot_method, shots, video_types, \
                             subsample_factor, num_clips, clip_length, preload_clips, frame_size, annotations_to_load, \
                             tasks_per_user, test_mode=False, with_cluster_labels=False, with_caps=False, shuffle=False, num_workers=None):

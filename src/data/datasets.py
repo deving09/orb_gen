@@ -12,10 +12,15 @@ from typing import Dict, List, Union
 from torch.utils.data import Dataset
 import torchvision.transforms.functional as tv_F
 
+from memory_profiler import profile
+
+
 class ORBITDataset(Dataset):
     """
     Base class for ORBIT dataset.
     """
+
+    #@profile(precision=4)
     def __init__(self, root, way_method, object_cap, shot_methods, shots, video_types, subsample_factor, num_clips, clip_length, preload_clips, frame_size, annotations_to_load, test_mode, with_cluster_labels, with_caps):
         """
         Creates instance of ORBITDataset.
@@ -134,6 +139,7 @@ class ORBITDataset(Dataset):
         self.num_objects = len(self.obj2name)
         print(f"Loaded data summary: {self.num_users} users, {self.num_objects} objects, {len(self.video2id)} videos")
     
+    #@profile(precision=4)
     def __load_video_annotations(self, video_name: str) -> Dict[str, Dict[str, Union[bool, torch.Tensor]]]:
         annotation_path = os.path.join(self.annotation_root, f"{video_name}.json")
         with open(annotation_path, 'r') as annotation_file:
@@ -144,6 +150,7 @@ class ORBITDataset(Dataset):
         
         return video_annotations
     
+    #@profile(precision=4)
     def __preprocess_bounding_boxes(self, video_annotations: Dict[str, Dict[str, Union[bool, torch.Tensor]]]) -> Dict[str, Dict[str, Union[bool, torch.Tensor]]]:
 
         for frame_id, annotation_dict in video_annotations.items():
@@ -159,12 +166,15 @@ class ORBITDataset(Dataset):
 
         return video_annotations
 
+    #@profile(precision=4)
     def __len__(self):
         return self.num_users
 
+    #@profile(precision=4)
     def get_user_objects(self, user):
         return self.user2objs[ self.users[user] ]
 
+    #@profile(precision=4)
     def compute_way(self, num_objects):
         """
         Function to compute the number of objects to sample for a user.
@@ -179,6 +189,7 @@ class ORBITDataset(Dataset):
         elif self.way_method == 'max':
             return max_objects
 
+    #@profile(precision=4)
     def sample_videos(self, object_videos):
         """
         Function to sample context and target video paths for a given object.
@@ -196,6 +207,7 @@ class ORBITDataset(Dataset):
 
         return context, target
 
+    #@profile(precision=4)
     def choose_videos(self, videos, required_shots, shot_method, shot_cap):
         """
         Function to choose video paths from a list of video paths according to required shots, shot method, and shot cap.
@@ -221,6 +233,7 @@ class ORBITDataset(Dataset):
             max_shots = min(num_videos, shot_cap) # capped for memory reasons
             return random.sample(videos, max_shots)
 
+    #@profile(precision=4)
     def sample_clips_from_videos(self, video_paths: List[str], num_clips: str):
         """
         Function to sample clips from a list of videos.
@@ -246,6 +259,7 @@ class ORBITDataset(Dataset):
 
         return clips, paths, video_ids, annotations
     
+    #@profile(precision=4)
     def extend_ann_dict(self, dest_dict, src_dict):
         """
         Function to extend all lists within annotation dictionary.
@@ -258,6 +272,7 @@ class ORBITDataset(Dataset):
 
         return dest_dict
 
+    #@profile(precision=4)
     def load_clips(self, paths):
         """
         Function to load clips from disk into tensors.
@@ -275,6 +290,7 @@ class ORBITDataset(Dataset):
 
         return loaded_clips
     
+    #@profile(precision=4)
     def load_annotations(self, paths: np.ndarray) -> torch.Tensor:
         """
         Function to load frame annotations, arrange in clips, from disk.
@@ -301,6 +317,7 @@ class ORBITDataset(Dataset):
 
         return loaded_annotations
 
+    #@profile(precision=4)
     def load_and_transform_frame(self, frame_path):
         """
         Function to load and transform frame.
@@ -312,6 +329,7 @@ class ORBITDataset(Dataset):
         frame = tv_F.normalize(frame, mean=self.normalize_stats['mean'], std=self.normalize_stats['std'])
         return frame
 
+    #@profile(precision=4)
     def sample_clips_from_a_video(self, video_path: str, num_clips: int) -> np.ndarray:
         """
         Function to sample num_clips clips from a single video.
@@ -351,6 +369,7 @@ class ORBITDataset(Dataset):
 
         return sampled_paths # shape (num_clips, clip_length)
    
+    #@profile(precision=4)
     def prepare_set(self, clips, paths, labels, annotations, video_ids, test_mode=False):
         """
         Function to prepare context/target set for a task.
@@ -388,6 +407,7 @@ class ORBITDataset(Dataset):
         else:
             return self.shuffle_set(clips, paths, labels, annotations)
 
+    #@profile(precision=4)
     def shuffle_set(self, clips, paths, labels, annotations):
         """
         Function to shuffle clips and their object labels.
@@ -410,6 +430,7 @@ class ORBITDataset(Dataset):
             else:
                 return clips, paths[idxs], labels[idxs], annotations
 
+    #@profile(precision=4)
     def get_label_map(self, objects, with_cluster_labels=False):
         """
         Function to get object-to-label map according to if with_cluster_labels is True.
@@ -426,6 +447,7 @@ class ORBITDataset(Dataset):
                 map_dict[old_label] = new_labels[i]
             return map_dict
 
+    #@profile(precision=4)
     def sample_task(self, task_objects, with_target_set, user_id=''):
 
         # select way (number of classes/objects) randomly
@@ -492,6 +514,7 @@ class UserEpisodicORBITDataset(ORBITDataset):
     """
     Class for user-centric episodic sampling of ORBIT dataset.
     """
+    #@profile(precision=4)
     def __init__(self, root, way_method, object_cap, shot_methods, shots, video_types, subsample_factor, num_clips, clip_length, preload_clips, frame_size, annotations_to_load, test_mode, with_cluster_labels, with_caps):
         """
         Creates instance of UserEpisodicORBITDataset.
@@ -514,6 +537,7 @@ class UserEpisodicORBITDataset(ORBITDataset):
         """
         ORBITDataset.__init__(self, root, way_method, object_cap, shot_methods, shots, video_types, subsample_factor, num_clips, clip_length, preload_clips, frame_size, annotations_to_load, test_mode, with_cluster_labels, with_caps)
 
+    #@profile(precision=4)
     def __getitem__(self, index):
         """
         Function to get a user-centric task as a set of (context and target) clips and labels.
@@ -530,6 +554,7 @@ class ObjectEpisodicORBITDataset(ORBITDataset):
     """
     Class for object-centric episodic sampling of ORBIT dataset.
     """
+    #@profile(precision=4)
     def __init__(self, root, way_method, object_cap, shot_methods, shots, video_types, subsample_factor, num_clips, clip_length, preload_clips, frame_size, annotations_to_load, test_mode, with_cluster_labels, with_caps):
         """
         Creates instance of ObjectEpisodicORBITDataset.
@@ -552,6 +577,7 @@ class ObjectEpisodicORBITDataset(ORBITDataset):
         """
         ORBITDataset.__init__(self, root, way_method, object_cap, shot_methods, shots, video_types, subsample_factor, num_clips, clip_length, preload_clips, frame_size, annotations_to_load, test_mode, with_cluster_labels, with_caps)
 
+    #@profile(precision=4)
     def __getitem__(self, index):
         """
         Function to get a object-centric task as a set of (context and target) clips and labels.

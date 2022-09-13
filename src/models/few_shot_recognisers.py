@@ -51,7 +51,7 @@ class FewShotRecogniser(nn.Module):
     Generic few-shot classification model.
     """
     
-    @profile(precision=4)
+    #@profile(precision=4)
     def __init__(self, pretrained_extractor_path: str, feature_extractor: str, batch_normalisation: str,
         adapt_features: bool, classifier: str, clip_length: int, batch_size: int, learn_extractor: bool,
         feature_adaptation_method: str, use_two_gpus: bool):
@@ -141,7 +141,7 @@ class FewShotRecogniser(nn.Module):
         #device_id = 'cuda:' + str(1)
         #self.classifier._set_device(torch.device(device_id))
     
-    @profile(precision=4)
+    #@profile(precision=4)
     def _get_features(self, clips, feature_adapter_params, ops_counter=None, context=False):
         """
         Function that passes clips through an adapted feature extractor to get adapted (and flattened) frame features.
@@ -166,7 +166,7 @@ class FewShotRecogniser(nn.Module):
 
         return features
 
-    @profile(precision=4)
+    #@profile(precision=4)
     def _get_features_in_batches(self, clip_loader, feature_adapter_params, ops_counter=None, context=False):
         """
         Function that passes clips in batches through an adapted feature extractor to get adapted (and flattened) frame features.
@@ -178,7 +178,7 @@ class FewShotRecogniser(nn.Module):
         """
         features = []
         self._set_model_state(context)
-        print(psutil.virtual_memory().percent)
+        #print(psutil.virtual_memory().percent)
         for batch_clips in clip_loader:
             batch_clips = batch_clips.to(self.device, non_blocking=True)
             t1 = time.time()
@@ -266,7 +266,7 @@ class FewShotRecogniser(nn.Module):
 
         return self.set_encoder.aggregate(reps, reduction=reduction, switch_device=self.use_two_gpus)
 
-    @profile(precision=4)
+    #@profile(precision=4)
     def _pool_features(self, features, ops_counter=None):
         """
         Function that pools frame features per clip.
@@ -572,7 +572,7 @@ class FullRecogniser(FewShotRecogniser):
 
         self.num_grad_steps = num_grad_steps # Or epochs
 
-    @profile(precision=4)
+    #@profile(precision=4)
     def personalise(self, context_clips, context_clip_labels, learning_args, ops_counter=None, object_list=None):
         """
         Function that learns a new task by taking a fixed number of gradient steps on the task's context set. For each task, a new linear classification layer is added (and FiLM layers if self.adapt_features == True).
@@ -626,7 +626,7 @@ class FullRecogniser(FewShotRecogniser):
                 torch.cuda.synchronize()
                 ops_counter.log_time(time.time() - t1)
 
-    @profile(precision=4)
+    #@profile(precision=4)
     def predict(self, clips, ops_counter=None, context=False):
         """
         Function that processes target clips in batches to get logits over object classes for each clip.
@@ -642,7 +642,7 @@ class FullRecogniser(FewShotRecogniser):
         features = self._pool_features(features, ops_counter)
         return self.classifier.predict(features, ops_counter)
 
-    @profile(precision=4)
+    #@profile(precision=4)
     def predict_a_batch(self, clips, ops_counter=None, context=False):
         """
         Function that processes a batch of clips to get logits over object classes for each clip.
