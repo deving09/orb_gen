@@ -129,6 +129,20 @@ class ImageCLIP(nn.Module):
         sz = x.size()
         return x.view(-1, sz[-3], sz[-2], sz[-1]) if x.dim() >=5 else x
 
+
+class TextCLIP(nn.Module):
+
+    def __init__(self, model):
+        super(TextCLIP, self).__init__()
+        self.model = model
+
+
+    def forward(self, text):
+
+        return self.model(text)
+
+
+
 class CLIPimf(nn.Module):
     
     #@profile(precision=4)
@@ -137,8 +151,12 @@ class CLIPimf(nn.Module):
         device = "cuda" if torch.cuda.is_available() else "cpu"
         self.device = device
         self.model = model # CLIPDataParallel(model)
+        #self.model = CLIPDataParallel(model)
         self.convert_to_fp32()
         self.model = nn.DataParallel(ImageCLIP(self.model))  #CLIPDataParallel
+        
+        #self.text_model = nn.DataParallel(TextCLIP(self.model))
+        #self.model = nn.DataParallel(self.model)  #CLIPDataParallel
         self.preprocess = preprocess
         #self.model.to(device)
         #self.model, self.preprocess = clip.load('ViT-B/32', self.device)

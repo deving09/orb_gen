@@ -236,8 +236,8 @@ class CLIPLinearClassifier(nn.Module):
         text_inputs = torch.cat([clip.tokenize(f"a photo of a {c}") for c in object_list])   #.to(self.device)
         text_inputs = text_inputs.to(self.device)
         #self._clip_model.to(self.device)
-        #text_features = self._clip_model.encode_text(text_inputs)
-        text_features = self._clip_model(text_inputs)
+        text_features = self._clip_model.encode_text(text_inputs)
+        #text_features = self._clip_model(text_inputs)
         text_features /= text_features.norm(dim=-1, keepdim=True)
         
         n_cls = len(object_list)
@@ -434,9 +434,10 @@ class PromptLearner(nn.Module):
         prompts = [prompt_prefix + " " + name + "." for name in classnames]
 
         tokenized_prompts = torch.cat([clip.clip.tokenize(p) for p in prompts]) #(n_cls, n_tkn)
-        #tokenized_prompts = tokenized_prompts.to(device)
+        tokenized_prompts = tokenized_prompts.to(device)
 
         with torch.no_grad():
+            print(tokenized_prompts.device)
             embedding = clip_model.token_embedding(tokenized_prompts).type(dtype)
 
 
@@ -513,8 +514,8 @@ class CLIPPromptClassifier(HeadClassifier):
         """
         super().__init__()
         self.in_size = in_size
-        self._clip_model = clip_model.module
-        #self._clip_model = clip_model
+        #self._clip_model = clip_model.module
+        self._clip_model = clip_model
         self.meth = meth
         self.text_encoder = TextEncoder(self._clip_model)
         self.logit_scale = self._clip_model.logit_scale
