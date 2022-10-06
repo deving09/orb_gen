@@ -283,6 +283,82 @@ class CLIPLinearClassifier(nn.Module):
 
 
 class SKLinearClassifier(HeadClassifier):
+    """
+    Class for a with SKLearn (full batch setting) linear classification layer.
+    """
+    
+    #@profile(precision=4)
+    def __init__(self, in_size): #, device=None):
+        """
+        Creates instance of LinearClassifier.
+        :param in_size: (int) Size of feature extractor output.
+        :return: Nothing.
+        """ 
+        super().__init__()
+        self.in_size = in_size
+
+        from sklearn.linear_model import LogisticRegression
+        self.clf = LogisticRegression(random_state=0)
+        #1/0
+        #self.device = device
+
+    def _set_device(self, device):
+        self.device = device
+
+    #def configure(self, out_size, device, init_zeros=True):
+    #@profile(precision=4)
+    def configure(self, context_features, context_labels, ops_counter=None, object_list=None):
+        """
+        Function that creates and initialises a linear classification layer.
+        :param out_size: (int) Number of classes in classification layer.
+        :param device: (torch.device) Device to move classification layer to.
+        :init_zeros: (bool) If True, initialise classification layer with zeros, otherwise use Kaiming uniform.
+        :return: Nothing.
+        """
+
+
+        X = context_features.cpu().detach().numpy()
+        y = context_labels.cpu().detach().numpy()
+        #clf = LogisticRegression(random_state=0).fit(X,y)
+        self.clf.fit(X,y)
+        #print(self.clf.get_params())
+        #print(self.clf.coef_.shape)
+        #print(self.clf.intercept_.shape)
+        #1/0
+
+        n_cls = len(torch.unique(context_labels))
+        self.linear = nn.Linear(self.in_size, n_cls, bias=True) 
+       
+        #print(self.linear.weight.data.shape)
+        #print(self.linear.bias.data.shape)
+        #1/0
+        #nn.init.kaiming_uniform_(self.linear.weight, mode="fan_out")
+        #nn.init.zeros_(self.linear.bias)
+        self.linear.weight.data = torch.from_numpy(self.clf.coef_)
+        self.linear.bias.data = torch.from_numpy(self.clf.intercept_)
+        self.linear.weight.data = self.linear.weight.type(context_features.dtype)
+        self.linear.bias.data = self.linear.bias.type(context_features.dtype)
+        self.linear.to(self.device)
+  
+    #@profile(precision=4)
+    def predict(self, features, ops_counter=None):
+        """
+        Function that passes a batch of target features through linear classification layer to get logits over object classes for each feature.
+        :param features: (torch.Tensor) Batch of features.
+        :return: (torch.Tensor) Logits over object classes for each feature.
+        """
+        t1 = time.time()
+
+        out = self.linear(features)
+        #if ops_counter:
+        #    torch.cuda.synchronize()
+        #    ops_counter.log_time(time.time() - t1)
+        #    ops_counter.compute_macs(self.linear, features)
+        
+        return out
+
+    def reset(self):
+        self.linear = None
     pass
 
 

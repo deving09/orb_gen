@@ -8,6 +8,8 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 import torchvision.transforms.functional as tv_F
 
+import random
+
 class DatasetFromClipPaths(Dataset):
     def __init__(self, clip_paths, with_labels):
         super().__init__()
@@ -58,9 +60,15 @@ def get_clip_loader(clips, batch_size, with_labels=False):
 
     elif isinstance(clips[0], torch.Tensor):
         if with_labels:
-            return list(zip(clips[0].split(batch_size), clips[1].split(batch_size)))
+            temp_list = list(zip(clips[0].split(batch_size), clips[1].split(batch_size)))
+            #random.shuffle(temp_list)
+            return temp_list
         else: 
-            return clips.split(batch_size)
+            temp_list = clips.split(batch_size)
+            #print(clips)
+            #print(type(clips))
+            #random.shuffle(temp_list)
+            return temp_list
 
 def attach_frame_history(frames, history_length):
     

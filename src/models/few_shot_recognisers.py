@@ -38,7 +38,7 @@ from feature_adapters import FilmAdapter, NullAdapter
 from models.poolers import MeanPooler
 from models.normalisation_layers import TaskNorm
 from models.set_encoder import SetEncoder, NullSetEncoder
-from models.classifiers import CLIPLinearClassifier, LinearClassifier, VersaClassifier, PrototypicalClassifier, MahalanobisClassifier, CLIPPromptClassifier
+from models.classifiers import CLIPLinearClassifier, LinearClassifier, VersaClassifier, PrototypicalClassifier, MahalanobisClassifier, CLIPPromptClassifier, SKLinearClassifier
 from utils.optim import init_optimizer
 from utils.data import get_clip_loader
 
@@ -113,6 +113,8 @@ class FewShotRecogniser(nn.Module):
             self.classifier = CLIPPromptClassifier(self.feature_extractor.output_size, self.feature_extractor.model.module.model, classifier)
         elif classifier == "cocoop":
             self.classifier = CLIPPromptClassifier(self.feature_extractor.output_size, self.feature_extractor.model.module.model, classifier)
+        elif classifier == "sklinear":
+            self.classifier = SKLinearClassifier(self.feature_extractor.output_size)
 
         # configure frame pooler
         self.frame_pooler = MeanPooler(T=self.clip_length)
@@ -590,7 +592,8 @@ class FullRecogniser(FewShotRecogniser):
         #inner_loop_optimizer = init_optimizer(self, lr, optimizer_type, extractor_scale_factor)
         
 
-        context_clip_loader = get_clip_loader((context_clips, context_clip_labels), self.batch_size, with_labels=True)
+        shuffled_idxs = np.random.permutation(len(context_clips))
+        context_clip_loader = get_clip_loader((context_clips[shuffled_idxs], context_clip_labels[shuffled_idxs]), self.batch_size, with_labels=True)
         
         task_embedding = None # multi-step methods do not use set encoder
         self.feature_adapter_params = self._get_feature_adapter_params(task_embedding, ops_counter)
@@ -605,7 +608,11 @@ class FullRecogniser(FewShotRecogniser):
 
         inner_loop_optimizer = init_optimizer(self, lr, optimizer_type, extractor_scale_factor)
         for _ in range(self.num_grad_steps):
-            for batch_context_clips, batch_context_labels in context_clip_loader:
+            shuffled_idxs = np.random.permutation(len(context_clips))
+            context_clip_loader = get_clip_loader((context_clips[shuffled_idxs], context_clip_labels[shuffled_idxs]), self.batch_size, with_labels=True)
+            for batch_idx, (batch_context_clips, batch_context_labels) in enumerate(context_clip_loader):
+                #if batch_idx == 0:
+                #    print(batch_context_labels)
                 batch_context_clips = batch_context_clips.to(self.device)
                 batch_context_labels = batch_context_labels.to(self.device)
                 batch_context_logits = self.predict_a_batch(batch_context_clips, ops_counter=ops_counter, context=True)
@@ -728,7 +735,9 @@ class FullRecogniser2(FewShotRecogniser):
 
         inner_loop_optimizer = init_optimizer(self, lr, optimizer_type, extractor_scale_factor)
         for _ in range(self.num_grad_steps):
-            for batch_context_clips, batch_context_labels in context_clip_loader:
+            for batch_idx, (batch_context_clips, batch_context_labels) in enumerate(context_clip_loader):
+                if batch_idx == 0:
+                    print(batch_context_labels)
                 batch_context_clips = batch_context_clips.to(self.device)
                 batch_context_labels = batch_context_labels.to(self.device)
                 batch_context_logits = self.predict_a_batch(batch_context_clips, ops_counter=ops_counter, context=True)
